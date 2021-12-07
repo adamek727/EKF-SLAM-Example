@@ -1,0 +1,17 @@
+init_pose:
+  pose: [0, 0, 0] # x, y, z
+  orientation: [0, 0, 0] # roll, pitch, yaw
+
+landmarks:  # x, y, z
+  - [0, 1, 0]
+  - [1, 2, 0]
+  - [8, 5, 0]
+  - [1, 9, 0]
+  - [6, 3, 0]
+
+measurement:
+  angle_noise: 0.01
+  distance_noise: 0.1
+
+simulation:
+  loop_period: 0.01

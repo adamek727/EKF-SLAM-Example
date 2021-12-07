@@ -1,0 +1,6 @@
+[submodule "libs/rtl"]
+	path = libs/rtl
+	url = https://github.com/Robotics-BUT/Robotic-Template-Library.git
+[submodule "libs/yaml"]
+	path = libs/yaml
+	url = https://github.com/adamek727/YAML-Service.git
