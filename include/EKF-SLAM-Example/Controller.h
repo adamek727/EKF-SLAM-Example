@@ -1,7 +1,7 @@
 #pragma once
 
 #include <rclcpp/rclcpp.hpp>
-#include "Config.h"
+#include "structs/Config.h"
 #include "SimulationEngine.h"
 #include "GamepadHandler.h"
 

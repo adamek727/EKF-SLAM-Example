@@ -4,7 +4,7 @@
 
 #include "YAML-Service/YAML-Service.h"
 #include "EKF-SLAM-Example/Controller.h"
-#include "EKF-SLAM-Example/Config.h"
+#include "EKF-SLAM-Example/structs/Config.h"
 
 int main(int argc, char* argv[]) {
 

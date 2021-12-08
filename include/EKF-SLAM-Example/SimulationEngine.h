@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Config.h"
 #include <rclcpp/rclcpp.hpp>
 
-#include "LandmarkMeasurement.h"
+#include "structs/Config.h"
+#include "structs/LandmarkMeasurement.h"
 
 class SimulationEngine {
 
