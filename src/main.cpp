@@ -38,7 +38,13 @@ int main(int argc, char* argv[]) {
         conf.angle_noise = yaml_config.getFloatValue({"measurement", "angle_noise"});
         conf.distance_noise = yaml_config.getFloatValue({"measurement", "distance_noise"});
 
+
+        // Reading simulation parameters
         conf.simulation_loop_period = yaml_config.getFloatValue({"simulation", "loop_period"});
+        conf.landmark_measurement_period = yaml_config.getFloatValue({"simulation", "landmark_measurement_period"});
+        conf.linear_speed_coef = yaml_config.getFloatValue({"simulation", "linear_speed_coef"});
+        conf.angular_speed_coef = yaml_config.getFloatValue({"simulation", "angular_speed_coef"});
+        conf.sensor_range = yaml_config.getFloatValue({"simulation", "sensor_range"});
 
     } catch (std::exception& e) {
         std::cerr << "Exception when reading config: " << e.what() << std::endl;

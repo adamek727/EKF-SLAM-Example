@@ -11,4 +11,9 @@ Controller::Controller(const Config& conf)
         simulation_engine_.set_liner_speed(gamepad_handler_.get_right_x());
         simulation_engine_.set_angular_speed(gamepad_handler_.get_left_y());
     });
+
+    simulation_engine_.set_landmark_callback([&](){
+        auto landmarks = simulation_engine_.get_landmark_measurements();
+        std::cout << "measurements done" << std::endl;
+    });
 }

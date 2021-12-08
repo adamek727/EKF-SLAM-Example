@@ -3,14 +3,23 @@
 #include "Config.h"
 #include <rclcpp/rclcpp.hpp>
 
+#include "LandmarkMeasurement.h"
+
 class SimulationEngine {
 
 public:
     SimulationEngine() = delete;
-    SimulationEngine(std::shared_ptr<rclcpp::Node> node, Config conf);
+    SimulationEngine(std::shared_ptr<rclcpp::Node> node, const Config conf);
 
-    void set_liner_speed(float speed) {robot_liner_speed_ = speed;};
-    void set_angular_speed(float ang_speed) {robot_angular_speed_ = ang_speed;};
+    void set_liner_speed(float speed) {robot_liner_speed_ = speed * conf_.linear_speed_coef;};
+    void set_angular_speed(float ang_speed) {robot_angular_speed_ = ang_speed * conf_.angular_speed_coef;};
+
+    void set_landmark_callback(std::function<void()> f) {landmark_measured_callback_ = f;}
+
+    [[nodiscard]] const rtl::Translation3f& get_robot_pose() const {return robot_pose_.tr();}
+    [[nodiscard]] const rtl::Rotation3f& get_robot_rotation() const {return robot_pose_.rot();}
+
+    [[nodiscard]] const std::vector<LandmarkMeasurement>& get_landmark_measurements() const {return landmark_measurements_;};
 
 protected:
 
@@ -18,9 +27,15 @@ protected:
     const Config conf_;
 
     rclcpp::TimerBase::SharedPtr simulation_timer_;
+    rclcpp::TimerBase::SharedPtr landmarks_measurement_timer_;
 
+    std::function<void()> landmark_measured_callback_ = {};
+    std::vector<LandmarkMeasurement> landmark_measurements_;
+
+    rtl::RigidTf3f robot_pose_;
     float robot_liner_speed_;
     float robot_angular_speed_;
 
-    void simulation_step_callback();
+    void simulation_step_timer_callback();
+    void landmark_measurement_timer_callback();
 };

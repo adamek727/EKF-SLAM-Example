@@ -15,3 +15,9 @@ measurement:
 
 simulation:
   loop_period: 0.01
+  landmark_measurement_period: 3.0
+
+  linear_speed_coef: 1.0
+  angular_speed_coef: 0.1
+
+  sensor_range: 3.0
