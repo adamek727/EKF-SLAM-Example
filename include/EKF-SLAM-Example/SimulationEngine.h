@@ -1,6 +1,7 @@
 #pragma once
 
 #include <rclcpp/rclcpp.hpp>
+#include <random>
 
 #include "structs/Config.h"
 #include "structs/LandmarkMeasurement.h"
@@ -16,8 +17,7 @@ public:
 
     void set_landmark_callback(std::function<void()> f) {landmark_measured_callback_ = f;}
 
-    [[nodiscard]] const rtl::Translation3f& get_robot_pose() const {return robot_pose_.tr();}
-    [[nodiscard]] const rtl::Rotation3f& get_robot_rotation() const {return robot_pose_.rot();}
+    [[nodiscard]] const rtl::RigidTf3f & get_robot_pose() const {return robot_pose_;}
 
     [[nodiscard]] const std::vector<LandmarkMeasurement>& get_landmark_measurements() const {return landmark_measurements_;};
 
@@ -38,4 +38,5 @@ protected:
 
     void simulation_step_timer_callback();
     void landmark_measurement_timer_callback();
+    static float gaussian_random_val(float mean, float std_div);
 };

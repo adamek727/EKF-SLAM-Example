@@ -20,4 +20,6 @@ struct Config {
     float angular_speed_coef = 1.0;
 
     float sensor_range = 1.0;
+
+    float visualization_period = 0.033;
 };

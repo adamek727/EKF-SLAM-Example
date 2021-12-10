@@ -42,16 +42,24 @@ void SimulationEngine::landmark_measurement_timer_callback() {
 
             auto robot_landmark_pose_diff = rtl::Vector3f{landmark.x(), landmark.y(), 0.0f} - rtl::Vector3f{robot_pose_.trVecX(), robot_pose_.trVecY(), 0.0f};
             rtl::Rotation3f measurement_orientation(rtl::Vector3f{1.0f, 0.0f, 0.0f}, robot_landmark_pose_diff);
-
+            measurement_orientation.transform(robot_pose_.rot().inverted());
             float r,p,y;
             measurement_orientation.rotRpy(r, p, y);
 
             landmark_measurements_.emplace_back(
                     LandmarkMeasurement{
+                        .sensor_pose = robot_pose_,
                         .pitch = 0.0f,
-                        .yaw = y + conf_.angle_noise,
-                        .range = distance + conf_.distance_noise});
+                        .yaw = y + gaussian_random_val(0.0, conf_.angle_noise),
+                        .range = distance + gaussian_random_val(0.0, conf_.distance_noise)});
         }
     }
     landmark_measured_callback_();
+}
+
+float SimulationEngine::gaussian_random_val(float mean, float std_div) {
+    static std::random_device r;
+    static auto engine = std::default_random_engine(r());
+    std::normal_distribution<float> distribution(mean, std_div);
+    return distribution(engine);
 }

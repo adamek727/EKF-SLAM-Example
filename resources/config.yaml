@@ -3,11 +3,21 @@ init_pose:
   orientation: [0, 0, 0] # roll, pitch, yaw
 
 landmarks:  # x, y, z
-  - [0, 1, 0]
-  - [1, 2, 0]
-  - [8, 5, 0]
-  - [1, 9, 0]
-  - [6, 3, 0]
+  - [4, 4, 0]
+  - [4, -1, 0]
+  - [3, 0, 0]
+  - [3, -4, 0]
+  - [2, 2, 0]
+  - [1, -2, 0]
+  - [1, -4, 0]
+  - [0, 3, 0]
+  - [-1, -1, 0]
+  - [-2, 4, 0]
+  - [-2, -4, 0]
+  - [-3, 1, 0]
+  - [-3, -2, 0]
+  - [-4, 4, 0]
+  - [-4, 0, 0]
 
 measurement:
   angle_noise: 0.01
@@ -15,9 +25,11 @@ measurement:
 
 simulation:
   loop_period: 0.01
-  landmark_measurement_period: 3.0
+  landmark_measurement_period: 1.0
 
   linear_speed_coef: 1.0
-  angular_speed_coef: 0.1
+  angular_speed_coef: 1.0
 
   sensor_range: 3.0
+
+  visualization_period: 0.05
