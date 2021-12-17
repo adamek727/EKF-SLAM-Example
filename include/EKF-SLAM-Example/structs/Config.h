@@ -22,4 +22,5 @@ struct Config {
     float sensor_range = 1.0;
 
     float visualization_period = 0.033;
+    float ekf_prediction_period = 0.1;
 };

@@ -46,8 +46,7 @@ int main(int argc, char* argv[]) {
         conf.angular_speed_coef = yaml_config.getFloatValue({"simulation", "angular_speed_coef"});
         conf.sensor_range = yaml_config.getFloatValue({"simulation", "sensor_range"});
         conf.visualization_period = yaml_config.getFloatValue({"simulation", "visualization_period"});
-
-
+        conf.ekf_prediction_period = yaml_config.getFloatValue({"simulation", "ekf_prediction_period"});
 
     } catch (std::exception& e) {
         std::cerr << "Exception when reading config: " << e.what() << std::endl;

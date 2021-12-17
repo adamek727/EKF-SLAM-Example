@@ -33,3 +33,4 @@ simulation:
   sensor_range: 3.0
 
   visualization_period: 0.05
+  ekf_prediction_period: 0.1
