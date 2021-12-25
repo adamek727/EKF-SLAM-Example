@@ -1,6 +1,6 @@
 #include "EKF-SLAM-Example/SimulationEngine.h"
 
-SimulationEngine::SimulationEngine(std::shared_ptr<rclcpp::Node> node, const Config conf)
+SimulationEngine::SimulationEngine(std::shared_ptr<rclcpp::Node> node, const Config& conf)
         : node_{std::move(node)}
         , conf_{std::move(conf)} {
 

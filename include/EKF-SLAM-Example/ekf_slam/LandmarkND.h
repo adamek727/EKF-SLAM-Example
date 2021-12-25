@@ -37,16 +37,17 @@ class LandmarkND {
 public:
 
     LandmarkND() = delete;
-    LandmarkND(rtl::TranslationND<dimension, dtype> tr)
+    LandmarkND(rtl::TranslationND<dimension, dtype> tr, int id = -1)
             : translation_{tr} {
-        id = -1;
+        id_ = {id};
     }
 
     const rtl::TranslationND<dimension, dtype>& translation() const {return translation_;}
+    const int id() const {return id_;}
 
 private:
     rtl::TranslationND<dimension, dtype> translation_;
-    int id;
+    int id_;
 };
 
 #endif ROBOTICTEMPLATELIBRARY_LANDMARKND_H

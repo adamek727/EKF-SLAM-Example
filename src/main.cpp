@@ -38,6 +38,8 @@ int main(int argc, char* argv[]) {
         conf.angle_noise = yaml_config.getFloatValue({"measurement", "angle_noise"});
         conf.distance_noise = yaml_config.getFloatValue({"measurement", "distance_noise"});
 
+        // Read gamepad config
+        conf.gamepad_period = yaml_config.getFloatValue({"gamepad", "gamepad_period"});
 
         // Reading simulation parameters
         conf.simulation_loop_period = yaml_config.getFloatValue({"simulation", "loop_period"});

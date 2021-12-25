@@ -30,49 +30,168 @@
 
 #include "LandmarkND.h"
 #include "AgentND.h"
+#include "rtl/alg/kalman/Kalman.h"
 
 
 template<typename dtype, size_t max_num_of_landmarks>
 class EkfSlam2D {
 
     static constexpr size_t dimension = 2;
-    static constexpr size_t state_vector_dim = 3 + (max_num_of_landmarks * 2);
+    static constexpr size_t agent_states = dimension + 1;
+
+    static constexpr size_t kalman_state_vector_dim = agent_states + (max_num_of_landmarks * 2);
+    static constexpr size_t kalman_measurement_vector_dim = (max_num_of_landmarks * 2);
+    static constexpr size_t kalman_control_vector_dim = 2;
 
 public:
 
-    EkfSlam2D() {
-
+    EkfSlam2D(float motion_noise, float measurement_noise)
+            : motion_noise_{motion_noise}
+            , measurement_noise_{measurement_noise}
+            , kalman_{motion_noise_, measurement_noise_} {
+        auto cov = rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>::zeros();
+        for (size_t i = agent_states; i < kalman_state_vector_dim ; i+=1) {
+            cov.setElement(i,i, std::numeric_limits<float>::max());
+        }
+        kalman_.set_covariance_matrix(cov);
     }
 
-    void predict(dtype lin_speed, dtype ang_speed, dtype dt) {
+    void predict(dtype v, dtype w, dtype dt) {
+        auto fi = kalman_.states().getElement(2, 0);
 
+        auto A = rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>::identity();
+        kalman_.set_transision_matrix(A);
+
+        auto B = rtl::Matrix<kalman_state_vector_dim, kalman_control_vector_dim, dtype>::zeros();
+        B.setElement(0, 0, dt * cos(fi));
+        B.setElement(1, 0, dt * sin(fi));
+        B.setElement(2, 1, dt);
+        kalman_.set_control_matrix(B);
+
+        auto control_vector = rtl::Matrix<kalman_control_vector_dim, 1, dtype>::zeros();
+        control_vector.setElement(0, 0, v);
+        control_vector.setElement(1, 0, w);
+
+        auto G_jacobian = rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>::identity();
+        G_jacobian.setElement(0, 2, abs(v) * dt * -sin(fi));
+        G_jacobian.setElement(1, 2, abs(v) * dt * cos(fi));
+
+        auto R_noise = rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>::identity() * motion_noise_;
+        kalman_.set_process_noise_covariance_matrix(R_noise);
+
+        kalman_.extended_predict(control_vector, G_jacobian);
     }
 
     void correct(const std::vector<LandmarkND<dimension, dtype>>& measurements) {
+        std::vector<LandmarkND<dimension, dtype>> new_landmarks;
+        std::vector<LandmarkND<dimension, dtype>> existing_landmarks;
+        for (const auto& measurement : measurements) {
+            if (measurement.id() == -1) {
+                new_landmarks.push_back(measurement);
+            } else {
+                existing_landmarks.push_back(measurement);
+            }
+        }
 
+        insert_landmarks(new_landmarks);
+        update_landmarks(existing_landmarks);
     }
 
     [[nodiscard]] AgentND<dimension, dtype> get_agent_state() const {
-        return AgentND<dimension, dtype>{rtl::VectorND<dimension, dtype>::zeros(),
-                                         rtl::RotationND<dimension, dtype>{}};
+        auto x = kalman_.states().getElement(0, 0);
+        auto y = kalman_.states().getElement(1, 0);
+        auto fi = kalman_.states().getElement(2, 0);
+        auto agent = AgentND<dimension, dtype>(rtl::TranslationND<dimension, dtype>{x, y},
+                                               rtl::RotationND<dimension, dtype>{fi});
+        return agent;
     };
 
     [[nodiscard]] std::vector<LandmarkND<dimension, dtype>> get_landmarks() const {
-        return std::vector<LandmarkND<dimension, dtype>>{};
+        return estimate_landmarks();
     }
 
-    [[nodiscard]] rtl::Matrix<state_vector_dim, 1, float>& get_state_vector_matrix() const {
-        return state_vector_matrix_;
+    [[nodiscard]] const rtl::Matrix<kalman_state_vector_dim, 1, float>& get_state_vector_matrix() const {
+        return kalman_.states();
     }
 
-    [[nodiscard]] rtl::Matrix<state_vector_dim, state_vector_dim, float>& get_covariant_matrix_() const {
-        return covariant_matrix_;
+    [[nodiscard]] const rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, float>& get_covariant_matrix_() const {
+
+        auto m = kalman_.covariance();
+        for (size_t i = 0 ; i < m.rowNr() ; i++) {
+            for (size_t j = 0 ; j < m.colNr() ; j++) {
+                std::cout << m.getElement(i, j) << " ";
+            }
+            std::cout << std::endl;
+        }
+        return kalman_.covariance();
     }
 
 private:
 
-    rtl::Matrix<state_vector_dim, 1, float> state_vector_matrix_;
-    rtl::Matrix<state_vector_dim, state_vector_dim, float> covariant_matrix_;
+    const float motion_noise_;
+    const float measurement_noise_;
+    rtl::Kalman<dtype, kalman_state_vector_dim, kalman_measurement_vector_dim, kalman_control_vector_dim> kalman_;
+
+    std::vector<LandmarkND<dimension, dtype>> estimate_landmarks() const {
+
+        std::vector<LandmarkND<dimension, dtype>> output;
+        auto landmark_index = 0;
+        const auto stat_mat = kalman_.states();
+        const auto cov_mat = kalman_.covariance();
+        for (size_t i = agent_states ; i < cov_mat.colNr() ; i+=2) {
+            if (cov_mat.getElement(i  , i) != std::numeric_limits<float>::max() &&
+                cov_mat.getElement(i+1, i+1) != std::numeric_limits<float>::max()) {
+                output.template emplace_back(
+                        LandmarkND<dimension, dtype>{
+                                rtl::TranslationND<dimension, dtype>{stat_mat.getElement(i, 0),
+                                                                     stat_mat.getElement(i+1, 0)},
+                                landmark_index
+                        });
+            }
+            landmark_index += 1;
+        }
+        return output;
+    }
+
+    void insert_landmarks(const std::vector<LandmarkND<dimension, dtype>>& landmarks) {
+        auto stat_mat = kalman_.states();
+        auto cov_mat = kalman_.covariance();
+
+        size_t landmark_index = 0;
+        for (size_t i = agent_states ; i < cov_mat.colNr() ; i+=2) {
+            if (cov_mat.getElement(i  , i) == std::numeric_limits<float>::max() &&
+                cov_mat.getElement(i+1, i+1) == std::numeric_limits<float>::max()) {
+
+                if (landmark_index >= landmarks.size()) {break;}
+
+                // insert new landmark
+                auto landmark = landmarks.at(landmark_index);
+                stat_mat.setElement(i, 0, landmark.translation().trVecX());
+                stat_mat.setElement(i+1, 0, landmark.translation().trVecY());
+                cov_mat.setElement(i, i, measurement_noise_);
+                cov_mat.setElement(i+1, i+1, measurement_noise_);
+                landmark_index+=1;
+            }
+        }
+        kalman_.set_states(stat_mat);
+        kalman_.set_covariance_matrix(cov_mat);
+    }
+
+    void update_landmarks(const std::vector<LandmarkND<dimension, dtype>>& landmarks) {
+        auto stat_mat = kalman_.states();
+        auto cov_mat = kalman_.covariance();
+
+        for (const auto& landmark : landmarks) {
+            size_t matrix_index = agent_states + landmark.id() * 2;
+            stat_mat.setElement(matrix_index, 0, landmark.translation().trVecX());
+            stat_mat.setElement(matrix_index+1, 0, landmark.translation().trVecY());
+            cov_mat.setElement(matrix_index, matrix_index, measurement_noise_);
+            cov_mat.setElement(matrix_index+1, matrix_index+1, measurement_noise_);
+        }
+
+        kalman_.set_states(stat_mat);
+        kalman_.set_covariance_matrix(cov_mat);
+    }
 };
 
-#endif ROBOTICTEMPLATELIBRARY_EKFSLAM2D_H
+#endif //ROBOTICTEMPLATELIBRARY_EKFSLAM2D_H

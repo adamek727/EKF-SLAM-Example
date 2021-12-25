@@ -23,6 +23,9 @@ measurement:
   angle_noise: 0.01
   distance_noise: 0.1
 
+gamepad:
+  gamepad_period: 0.1
+
 simulation:
   loop_period: 0.01
   landmark_measurement_period: 1.0

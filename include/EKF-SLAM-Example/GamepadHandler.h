@@ -6,6 +6,8 @@
 #include <SDL2/SDL.h>
 #include <chrono>
 
+#include "structs/Config.h"
+
 using namespace std::chrono_literals;
 
 class GamepadHandler {
@@ -21,7 +23,7 @@ class GamepadHandler {
 public:
 
     GamepadHandler() = delete;
-    GamepadHandler(std::shared_ptr<rclcpp::Node> node);
+    GamepadHandler(std::shared_ptr<rclcpp::Node> node, const Config& conf);
 
     // switching X and Y axis (compatibility with right hand system (x - forward, y - left)
     float get_left_x() {return -axis_values_[JoystickAxis::LEFT_Y];}
@@ -39,6 +41,7 @@ protected:
     void on_joystick_axis_moved(uint8_t axis, int16_t value);
     void reset_states();
 
+    const Config& conf_;
     std::shared_ptr<rclcpp::Node> node_;
     SDL_GameController *gamepadHandler_;
     rclcpp::TimerBase::SharedPtr gamepad_timer_;

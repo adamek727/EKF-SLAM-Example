@@ -10,6 +10,7 @@ struct Config {
                                 rtl::Translation3f{0, 0, 0}};
     std::vector<rtl::Vector3f> landmarks = {};
 
+    float gamepad_period = 0.1;
     float angle_noise = 0.01;
     float distance_noise = 0.1;
 

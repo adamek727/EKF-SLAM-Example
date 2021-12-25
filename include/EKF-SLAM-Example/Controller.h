@@ -9,10 +9,14 @@
 
 class Controller : public rclcpp::Node {
 
+    static constexpr size_t num_of_landmarks = 6;
+    static constexpr float landmark_assing_distance = 0.5f;
+
 public:
 
     Controller() = delete;
     Controller(const Config& conf);
+    ~Controller();
 
 protected:
 
@@ -21,8 +25,9 @@ protected:
     GamepadHandler gamepad_handler_;
 
     rclcpp::TimerBase::SharedPtr visualization_timer_;
+    rclcpp::TimerBase::SharedPtr ekf_prediction_timer_;
     VisualizationEngine visualization_engine_;
-    EkfSlam2D<float, 50> ekf_slam_;
+    EkfSlam2D<float, num_of_landmarks> ekf_slam_;
 
     void ekf_prediction_timer_callback();
     void visualization_timer_callback();
