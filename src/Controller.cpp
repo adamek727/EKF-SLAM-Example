@@ -21,11 +21,11 @@ Controller::Controller(const Config& conf)
         auto slam_landmarks = ekf_slam_.get_landmarks();
         auto robot_pose = simulation_engine_.get_robot_pose();
 
-        std::cout << " - - - - - - " << std::endl;
-        for (const auto& m : landmark_measurements) {
-            auto pose = m.to_xy();
-            std::cout << "x: " << pose.x() << " y:" << pose.y() << std::endl;
-        }
+//        std::cout << " - - - - - - " << std::endl;
+//        for (const auto& m : landmark_measurements) {
+//            auto pose = m.to_xy();
+//            std::cout << "x: " << pose.x() << " y:" << pose.y() << std::endl;
+//        }
 
         // landmark assignment
         std::vector<LandmarkND<2, float>> measurements;
@@ -98,9 +98,9 @@ void Controller::visualization_timer_callback() {
     const auto states = ekf_slam_.get_state_vector_matrix();
     const auto cov = ekf_slam_.get_covariant_matrix_();
 
-    cv::Mat cov_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(1.0f));
+    cv::Mat cov_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
     cv::eigen2cv(cov.data(), cov_img);
-
+    cov_img.setTo(100,cov_img>100);
     visualization_engine_.draw_covariance_matrix(cov_img);
 
     auto reduced_cov = rtl::Matrix33f();

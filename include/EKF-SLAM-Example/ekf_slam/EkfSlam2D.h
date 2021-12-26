@@ -40,7 +40,7 @@ class EkfSlam2D {
     static constexpr size_t agent_states = dimension + 1;
 
     static constexpr size_t kalman_state_vector_dim = agent_states + (max_num_of_landmarks * 2);
-    static constexpr size_t kalman_measurement_vector_dim = (max_num_of_landmarks * 2);
+    static constexpr size_t kalman_measurement_vector_dim = 2; //(max_num_of_landmarks * 2);
     static constexpr size_t kalman_control_vector_dim = 2;
 
 public:
@@ -54,6 +54,9 @@ public:
             cov.setElement(i,i, std::numeric_limits<float>::max());
         }
         kalman_.set_covariance_matrix(cov);
+
+        auto measurement_noise_mat = rtl::Matrix<kalman_measurement_vector_dim, kalman_measurement_vector_dim, dtype>::identity() * measurement_noise_;
+        kalman_.set_measurement_noise_covariance_matrix(measurement_noise_mat);
     }
 
     void predict(dtype v, dtype w, dtype dt) {
@@ -115,14 +118,6 @@ public:
     }
 
     [[nodiscard]] const rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, float>& get_covariant_matrix_() const {
-
-        auto m = kalman_.covariance();
-        for (size_t i = 0 ; i < m.rowNr() ; i++) {
-            for (size_t j = 0 ; j < m.colNr() ; j++) {
-                std::cout << m.getElement(i, j) << " ";
-            }
-            std::cout << std::endl;
-        }
         return kalman_.covariance();
     }
 
@@ -178,19 +173,50 @@ private:
     }
 
     void update_landmarks(const std::vector<LandmarkND<dimension, dtype>>& landmarks) {
-        auto stat_mat = kalman_.states();
-        auto cov_mat = kalman_.covariance();
+//        auto stat_mat = kalman_.states();
+//        auto cov_mat = kalman_.covariance();
+//        for (const auto& landmark : landmarks) {
+//            size_t matrix_index = agent_states + landmark.id() * 2;
+//            stat_mat.setElement(matrix_index, 0, landmark.translation().trVecX());
+//            stat_mat.setElement(matrix_index+1, 0, landmark.translation().trVecY());
+//            cov_mat.setElement(matrix_index, matrix_index, measurement_noise_);
+//            cov_mat.setElement(matrix_index+1, matrix_index+1, measurement_noise_);
+//        }
+//        kalman_.set_states(stat_mat);
+//        kalman_.set_covariance_matrix(cov_mat);
 
+        auto robot = get_agent_state();
+        auto robot_yaw = robot.rotation().rotAngle();
         for (const auto& landmark : landmarks) {
             size_t matrix_index = agent_states + landmark.id() * 2;
-            stat_mat.setElement(matrix_index, 0, landmark.translation().trVecX());
-            stat_mat.setElement(matrix_index+1, 0, landmark.translation().trVecY());
-            cov_mat.setElement(matrix_index, matrix_index, measurement_noise_);
-            cov_mat.setElement(matrix_index+1, matrix_index+1, measurement_noise_);
+            auto d_x = landmark.translation().trVecX() - robot.translation().trVecX();
+            auto d_y = landmark.translation().trVecY() - robot.translation().trVecY();
+            auto q = pow(d_x, 2) + pow(d_y, 2);
+            auto d = sqrt(q);
+
+            auto z_measurement = rtl::Matrix<kalman_measurement_vector_dim, 1, dtype>::zeros();
+            z_measurement.setElement(0, 0, d);
+            z_measurement.setElement(1, 0, atan2(d_y, d_x) - robot_yaw);
+
+            auto H_jacobian = rtl::Matrix<kalman_measurement_vector_dim, kalman_state_vector_dim, dtype>::zeros();
+            H_jacobian.setColumn(0, rtl::VectorND<2, dtype>{-d*d_x, d_y});
+            H_jacobian.setColumn(1, rtl::VectorND<2, dtype>{-d*d_y, -d_x});
+            H_jacobian.setColumn(2, rtl::VectorND<2, dtype>{0.0f, -q});
+            H_jacobian.setColumn(matrix_index, rtl::VectorND<2, dtype>{d*d_x, -d_y});
+            H_jacobian.setColumn(matrix_index+1, rtl::VectorND<2, dtype>{d*d_y, d_x});
+            H_jacobian /= q;
+
+            kalman_.extended_correct(z_measurement, H_jacobian);
         }
 
-        kalman_.set_states(stat_mat);
-        kalman_.set_covariance_matrix(cov_mat);
+        auto cov = kalman_.covariance();
+        std::cout << " - Cov - - - - " << std::endl;
+        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
+            for (size_t j = 0 ; j < cov.colNr() ; j++) {
+                std::cout << cov.getElement(i, j) << " ";
+            }
+            std::cout << std::endl;
+        }
     }
 };
 
