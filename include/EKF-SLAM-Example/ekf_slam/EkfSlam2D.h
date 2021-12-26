@@ -193,10 +193,11 @@ private:
             auto d_y = landmark.translation().trVecY() - robot.translation().trVecY();
             auto q = pow(d_x, 2) + pow(d_y, 2);
             auto d = sqrt(q);
+            auto fi = atan2(d_y, d_x);
 
             auto z_measurement = rtl::Matrix<kalman_measurement_vector_dim, 1, dtype>::zeros();
             z_measurement.setElement(0, 0, d);
-            z_measurement.setElement(1, 0, atan2(d_y, d_x) - robot_yaw);
+            z_measurement.setElement(1, 0, fi - robot_yaw);
 
             auto H_jacobian = rtl::Matrix<kalman_measurement_vector_dim, kalman_state_vector_dim, dtype>::zeros();
             H_jacobian.setColumn(0, rtl::VectorND<2, dtype>{-d*d_x, d_y});

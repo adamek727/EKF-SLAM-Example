@@ -42,4 +42,9 @@ namespace topics {
         return str;
     }
 
+    inline const std::string& CORRELATIONS() {
+        static const std::string str = PRESET() + "/correlations";
+        return str;
+    }
+
 }

@@ -97,6 +97,9 @@ void Controller::visualization_timer_callback() {
 
     const auto states = ekf_slam_.get_state_vector_matrix();
     const auto cov = ekf_slam_.get_covariant_matrix_();
+    auto agent_x = states.getElement(0, 0);
+    auto agent_y = states.getElement(1, 0);
+    size_t no_of_landmarks = (states.rowNr() - 3) / 2;
 
     cv::Mat cov_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
     cv::eigen2cv(cov.data(), cov_img);
@@ -117,4 +120,28 @@ void Controller::visualization_timer_callback() {
         slam_landmarks_v.emplace_back(rtl::Vector3f{landmark.translation().trVecX(), landmark.translation().trVecY(), 0.0f});
     }
     visualization_engine_.draw_estimated_landmarks(slam_landmarks_v);
+
+    std::vector<VisualizationEngine::Correlation> correlations;
+    for (size_t l ; l < no_of_landmarks ; l+=1) {
+        size_t i = 3 + (l * 2);
+        auto landmark_x = states.getElement(i, 0);
+        auto landmark_y = states.getElement(i+1, 0);
+        auto corr = sqrtf(powf(cov.getElement(i, 0),2) + powf(cov.getElement(i+1, 1),2));
+        correlations.emplace_back(
+            VisualizationEngine::Correlation{rtl::Vector3f{agent_x, agent_y, 0.0f},
+                                             rtl::Vector3f{landmark_x, landmark_y, 0.0f},
+                                             corr});
+    }
+    for (size_t l1 = 0 ; l1 < no_of_landmarks ; l1+=1) {
+        for (size_t l2 = l1 + 1 ; l2 < no_of_landmarks ; l2+=1) {
+            size_t i1 = 3 + (l1 * 2);
+            size_t i2 = 3 + (l2 * 2);
+            auto corr = sqrtf(powf(cov.getElement(i2, i1),2) + powf(cov.getElement(i2+1, i1+1),2));
+            correlations.emplace_back(
+                    VisualizationEngine::Correlation{rtl::Vector3f{states.getElement(i1,0), states.getElement(i1+1,0), 0.0f},
+                                                     rtl::Vector3f{states.getElement(i2,0), states.getElement(i2+1,0), 0.0f},
+                                                     corr});
+        }
+    }
+    visualization_engine_.draw_correlations(correlations);
 }

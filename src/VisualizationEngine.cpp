@@ -134,8 +134,42 @@ void VisualizationEngine::draw_landmark_measurements(const std::vector<LandmarkM
     backend_.visualize(msg, topics::LANDMARK_MEASUREMENTS());
 }
 
-void VisualizationEngine::draw_covariances() {
+void VisualizationEngine::draw_correlations(std::vector<Correlation> correlations) {
 
+    visualization_msgs::msg::MarkerArray msg;
+    int marker_count = 0;
+    static int max_marker_count = 0;
+
+    for (const auto& correlation : correlations) {
+        float scale = correlation.correlation() * 10;
+        MarkersFactory::Meta line_meta {
+                .pose = rtl::Vector3f ::zeros(),
+                .orientation = rtl::Quaternionf::identity(),
+                .scale = rtl::Vector3f {scale, scale, scale},
+                .color = Colors::Purple,
+                .points = {correlation.pose_a(), correlation.pose_b()},
+                .id = marker_count++,
+                .frame = frames::ORIGIN(),
+                .time = node_->get_clock()->now(),
+        };
+        msg.markers.emplace_back(MarkersFactory::create_line_list(line_meta));
+    }
+    for (;marker_count < max_marker_count;) {
+        MarkersFactory::Meta line_meta {
+                .pose = rtl::Vector3f ::zeros(),
+                .orientation = rtl::Quaternionf::identity(),
+                .scale = rtl::Vector3f::zeros(),
+                .color = Colors::Invisible,
+                .points = {},
+                .id = marker_count++,
+                .frame = frames::ORIGIN(),
+                .time = node_->get_clock()->now(),
+        };
+        msg.markers.emplace_back(MarkersFactory::create_line_list(line_meta));
+    }
+
+    max_marker_count = marker_count;
+    backend_.visualize(msg, topics::CORRELATIONS());
 }
 
 
