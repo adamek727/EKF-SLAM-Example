@@ -9,7 +9,7 @@
 
 class Controller : public rclcpp::Node {
 
-    static constexpr size_t num_of_landmarks = 6;
+    static constexpr size_t num_of_landmarks = 5;
     static constexpr float landmark_assing_distance = 0.5f;
 
 public:

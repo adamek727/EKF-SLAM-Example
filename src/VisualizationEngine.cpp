@@ -69,11 +69,8 @@ void VisualizationEngine::draw_landmarks(const std::vector<rtl::Vector3f>& landm
 
     auto time_diff = node_->get_clock()->now() - time_begin;
 
-
-//    auto pitch_rot = rtl::Quaternionf{0, M_PI_4, 0};
-//    auto yaw_rot = rtl::Quaternionf{M_PI_4, 0, 0};
     auto time_rot = rtl::Quaternionf{0, 0, static_cast<float>(time_diff.seconds())};
-    auto landmark_orientation = time_rot; /* * yaw_rot * pitch_rot * rtl::Quaternionf::identity();*/
+    auto landmark_orientation = time_rot;
     for (const auto& landmark : landmarks) {
         MarkersFactory::Meta landmark_meta {
                 .pose = landmark,
@@ -109,7 +106,8 @@ void VisualizationEngine::draw_landmark_measurements(const std::vector<LandmarkM
                 .orientation = rtl::Quaternionf::identity(),
                 .scale = rtl::Vector3f {0.05f, 0.05f, 0.05f},
                 .color = Colors::Yellow,
-                .points = {measurement.sensor_pose.trVec(), landmark_pose},
+                .points = {measurement.sensor_pose.trVec() + rtl::Vector3f{0.0f, 0.0f, 0.1f},
+                           landmark_pose + rtl::Vector3f{0.0f, 0.0f, 0.1f}},
                 .id = marker_count++,
                 .frame = frames::ORIGIN(),
                 .time = node_->get_clock()->now(),
@@ -225,7 +223,7 @@ void VisualizationEngine::draw_estimated_robot(const rtl::RigidTf3f& pose) {
             .pose = pose.trVec() + rtl::Vector3f {0.0f, 0.0f, 0.25f},
             .orientation = pose.rotQuaternion(),
             .scale = rtl::Vector3f {0.25f, 0.25f, 0.5f},
-            .color = Colors::Blue,
+            .color = Colors::Aqua,
             .id = 0,
             .frame = frames::ORIGIN(),
             .time = node_->get_clock()->now(),

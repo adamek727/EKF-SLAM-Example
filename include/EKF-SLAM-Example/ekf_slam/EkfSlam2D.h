@@ -39,11 +39,13 @@ class EkfSlam2D {
     static constexpr size_t dimension = 2;
     static constexpr size_t agent_states = dimension + 1;
 
-    static constexpr size_t kalman_state_vector_dim = agent_states + (max_num_of_landmarks * 2);
-    static constexpr size_t kalman_measurement_vector_dim = 2; //(max_num_of_landmarks * 2);
-    static constexpr size_t kalman_control_vector_dim = 2;
 
 public:
+
+    static constexpr size_t kalman_state_vector_dim = agent_states + (max_num_of_landmarks * 2);
+    static constexpr size_t kalman_measurement_vector_dim = 2;
+    static constexpr size_t kalman_control_vector_dim = 2;
+
 
     EkfSlam2D(float motion_noise, float measurement_noise)
             : motion_noise_{motion_noise}
@@ -62,27 +64,16 @@ public:
     void predict(dtype v, dtype w, dtype dt) {
         auto fi = kalman_.states().getElement(2, 0);
 
-        auto A = rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>::identity();
-        kalman_.set_transision_matrix(A);
-
-        auto B = rtl::Matrix<kalman_state_vector_dim, kalman_control_vector_dim, dtype>::zeros();
-        B.setElement(0, 0, dt * cos(fi));
-        B.setElement(1, 0, dt * sin(fi));
-        B.setElement(2, 1, dt);
-        kalman_.set_control_matrix(B);
-
-        auto control_vector = rtl::Matrix<kalman_control_vector_dim, 1, dtype>::zeros();
-        control_vector.setElement(0, 0, v);
-        control_vector.setElement(1, 0, w);
+        auto x_diff = rtl::Matrix<kalman_state_vector_dim, 1, dtype>::zeros();
+        x_diff.setElement(0, 0, x_diff.getElement(0, 0) + v * dt * cos(fi));
+        x_diff.setElement(1, 0, x_diff.getElement(1, 0) + v * dt * sin(fi));
+        x_diff.setElement(2, 0, x_diff.getElement(2, 0) + w * dt);
 
         auto G_jacobian = rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>::identity();
-        G_jacobian.setElement(0, 2, abs(v) * dt * -sin(fi));
-        G_jacobian.setElement(1, 2, abs(v) * dt * cos(fi));
+        G_jacobian.setElement(0, 2, v * dt * -sin(fi));
+        G_jacobian.setElement(1, 2, v * dt * cos(fi));
 
-        auto R_noise = rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>::identity() * motion_noise_;
-        kalman_.set_process_noise_covariance_matrix(R_noise);
-
-        kalman_.extended_predict(control_vector, G_jacobian);
+        kalman_.extended_predict(x_diff, G_jacobian);
     }
 
     void correct(const std::vector<LandmarkND<dimension, dtype>>& measurements) {
@@ -100,6 +91,14 @@ public:
         update_landmarks(existing_landmarks);
     }
 
+    void set_process_noise_matrix(const rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype> process_noise) {
+        kalman_.set_process_noise_covariance_matrix(process_noise);
+    }
+
+    void set_measurement_noise_matrix(const rtl::Matrix<kalman_measurement_vector_dim, kalman_measurement_vector_dim, dtype> measurements_noise) {
+        kalman_.set_measurement_noise_covariance_matrix(measurements_noise);
+    }
+
     [[nodiscard]] AgentND<dimension, dtype> get_agent_state() const {
         auto x = kalman_.states().getElement(0, 0);
         auto y = kalman_.states().getElement(1, 0);
@@ -108,6 +107,10 @@ public:
                                                rtl::RotationND<dimension, dtype>{fi});
         return agent;
     };
+
+    [[nodiscard]] LandmarkND<dimension, dtype> get_landmark(size_t index) const {
+        return estimate_landmarks(index).at(index);
+    }
 
     [[nodiscard]] std::vector<LandmarkND<dimension, dtype>> get_landmarks() const {
         return estimate_landmarks();
@@ -127,7 +130,8 @@ private:
     const float measurement_noise_;
     rtl::Kalman<dtype, kalman_state_vector_dim, kalman_measurement_vector_dim, kalman_control_vector_dim> kalman_;
 
-    std::vector<LandmarkND<dimension, dtype>> estimate_landmarks() const {
+
+    std::vector<LandmarkND<dimension, dtype>> estimate_landmarks(size_t req_index = -1) const {
 
         std::vector<LandmarkND<dimension, dtype>> output;
         auto landmark_index = 0;
@@ -142,6 +146,9 @@ private:
                                                                      stat_mat.getElement(i+1, 0)},
                                 landmark_index
                         });
+                if (landmark_index == req_index) {
+                    break;
+                }
             }
             landmark_index += 1;
         }
@@ -173,17 +180,6 @@ private:
     }
 
     void update_landmarks(const std::vector<LandmarkND<dimension, dtype>>& landmarks) {
-//        auto stat_mat = kalman_.states();
-//        auto cov_mat = kalman_.covariance();
-//        for (const auto& landmark : landmarks) {
-//            size_t matrix_index = agent_states + landmark.id() * 2;
-//            stat_mat.setElement(matrix_index, 0, landmark.translation().trVecX());
-//            stat_mat.setElement(matrix_index+1, 0, landmark.translation().trVecY());
-//            cov_mat.setElement(matrix_index, matrix_index, measurement_noise_);
-//            cov_mat.setElement(matrix_index+1, matrix_index+1, measurement_noise_);
-//        }
-//        kalman_.set_states(stat_mat);
-//        kalman_.set_covariance_matrix(cov_mat);
 
         auto robot = get_agent_state();
         auto robot_yaw = robot.rotation().rotAngle();
@@ -199,6 +195,13 @@ private:
             z_measurement.setElement(0, 0, d);
             z_measurement.setElement(1, 0, fi - robot_yaw);
 
+            auto lm = get_landmark(landmark.id());
+            auto z_map = rtl::Matrix<kalman_measurement_vector_dim, 1, dtype>::zeros();
+            z_map.setElement(0, 0, sqrtf(powf(lm.translation().trVecX(), 2.0f) + powf(lm.translation().trVecY(), 2.0f)));
+            z_map.setElement(1, 0, atan2(lm.translation().trVecY(), lm.translation().trVecX()) - robot_yaw);
+
+            auto z_diff = z_measurement - z_map;
+
             auto H_jacobian = rtl::Matrix<kalman_measurement_vector_dim, kalman_state_vector_dim, dtype>::zeros();
             H_jacobian.setColumn(0, rtl::VectorND<2, dtype>{-d*d_x, d_y});
             H_jacobian.setColumn(1, rtl::VectorND<2, dtype>{-d*d_y, -d_x});
@@ -207,12 +210,16 @@ private:
             H_jacobian.setColumn(matrix_index+1, rtl::VectorND<2, dtype>{d*d_y, d_x});
             H_jacobian /= q;
 
-            kalman_.extended_correct(z_measurement, H_jacobian);
+            kalman_.extended_correct(z_diff, H_jacobian);
         }
 
+        auto stat = kalman_.states();
         auto cov = kalman_.covariance();
-        std::cout << " - Cov - - - - " << std::endl;
+        std::cout << " - Stat | Cov - - - - " << std::endl;
         for (size_t i = 0 ; i < cov.rowNr() ; i++) {
+
+            std::cout << stat.getElement(i,0) << "\t\t|\t\t";
+
             for (size_t j = 0 ; j < cov.colNr() ; j++) {
                 std::cout << cov.getElement(i, j) << " ";
             }

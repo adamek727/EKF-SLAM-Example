@@ -13,6 +13,7 @@ struct Config {
     float gamepad_period = 0.1;
     float angle_noise = 0.01;
     float distance_noise = 0.1;
+    float motion_noise = 0.001;
 
     float simulation_loop_period = 0.1;
     float landmark_measurement_period = 1.0f;

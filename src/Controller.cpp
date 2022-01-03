@@ -9,7 +9,7 @@ Controller::Controller(const Config& conf)
         , simulation_engine_(static_cast<std::shared_ptr<Node>>(this), conf)
         , gamepad_handler_{static_cast<std::shared_ptr<Node>>(this), conf}
         , visualization_engine_{static_cast<std::shared_ptr<Node>>(this)}
-        , ekf_slam_{0.0001, 0.1} {
+        , ekf_slam_{0.0, conf_.distance_noise} {
 
     gamepad_handler_.set_joystick_event_callback([&](){
         simulation_engine_.set_liner_speed(gamepad_handler_.get_right_x());
@@ -20,12 +20,6 @@ Controller::Controller(const Config& conf)
         auto landmark_measurements = simulation_engine_.get_landmark_measurements();
         auto slam_landmarks = ekf_slam_.get_landmarks();
         auto robot_pose = simulation_engine_.get_robot_pose();
-
-//        std::cout << " - - - - - - " << std::endl;
-//        for (const auto& m : landmark_measurements) {
-//            auto pose = m.to_xy();
-//            std::cout << "x: " << pose.x() << " y:" << pose.y() << std::endl;
-//        }
 
         // landmark assignment
         std::vector<LandmarkND<2, float>> measurements;
@@ -68,6 +62,19 @@ Controller::Controller(const Config& conf)
     visualization_timer_ = create_wall_timer(std::chrono::milliseconds(visualization_period_ms),
                                              std::bind(&Controller::visualization_timer_callback,
                                              this));
+
+    auto process_noise_mat = rtl::Matrix<EkfSlam2D<float, num_of_landmarks>::kalman_state_vector_dim, EkfSlam2D<float, num_of_landmarks>::kalman_state_vector_dim, float>::zeros();
+    process_noise_mat.setElement(0, 0, conf.motion_noise);
+    process_noise_mat.setElement(1, 1, conf.motion_noise);
+    process_noise_mat.setElement(2, 2, conf.motion_noise);
+    ekf_slam_.set_process_noise_matrix(process_noise_mat);
+
+    auto measurement_noise_mat = rtl::Matrix<EkfSlam2D<float, num_of_landmarks>::kalman_measurement_vector_dim, EkfSlam2D<float, num_of_landmarks>::kalman_measurement_vector_dim, float>::zeros();
+//    measurement_noise_mat.setElement(0, 0, conf.distance_noise);
+//    measurement_noise_mat.setElement(1, 1, conf.angle_noise);
+    measurement_noise_mat.setElement(0, 0, 0.5);
+    measurement_noise_mat.setElement(1, 1, 0.5);
+    ekf_slam_.set_measurement_noise_matrix(measurement_noise_mat);
 }
 
 
