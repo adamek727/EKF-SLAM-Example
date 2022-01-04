@@ -36,3 +36,4 @@ target_link_libraries(ekf-slam-example yaml-cpp ${SDL2_LIBRARIES} ${OpenCV_LIBS}
 ament_target_dependencies(ekf-slam-example rclcpp cv_bridge std_msgs sensor_msgs geometry_msgs visualization_msgs)
 
 add_subdirectory(libs/rtl/)
+add_subdirectory(tests/)

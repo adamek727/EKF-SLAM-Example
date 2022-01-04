@@ -1,6 +1,7 @@
 #include "EKF-SLAM-Example/VisualizationEngine.h"
 
 #include <cv_bridge/cv_bridge.h>
+#include <opencv4/opencv2/highgui.hpp>
 
 VisualizationEngine::VisualizationEngine(std::shared_ptr<rclcpp::Node> node)
 : node_{node}
@@ -183,6 +184,16 @@ void VisualizationEngine::draw_covariance_matrix(const cv::Mat& mat) {
     img_bridge.toImageMsg(msg);
 
     backend_.visualize(msg, topics::COV_MATRIX());
+
+//#ifdef DRAW_OPEN_CV
+    cv::Mat upscaled_mat, norm_f, norm_i;
+    cv::resize(mat, upscaled_mat, cv::Size(400, 400), cv::INTER_NEAREST);
+    normalize(upscaled_mat, norm_f, 0, 1, cv::NORM_MINMAX,CV_32FC1);
+    normalize(upscaled_mat, norm_i, 0, 255, cv::NORM_MINMAX,CV_8SC1);
+    cv::imshow("cov mat", norm_f);
+    cv::imwrite("img.bmp", norm_i);
+    cv::waitKey(1);
+//#endif
 }
 
 

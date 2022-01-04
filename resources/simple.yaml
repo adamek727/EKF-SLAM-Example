@@ -4,6 +4,8 @@ init_pose:
 
 landmarks:  # x, y, z
   - [0, -2, 0]
+  - [1, 0, 0]
+  - [-1, 2, 0]
 
 measurement:
   angle_noise: 0.01
@@ -13,8 +15,8 @@ gamepad:
   gamepad_period: 0.1
 
 simulation:
-  loop_period: 0.01
-  landmark_measurement_period: 1.0
+  loop_period: 0.1
+  landmark_measurement_period: 0.1
 
   linear_speed_coef: 1.0
   angular_speed_coef: 1.0

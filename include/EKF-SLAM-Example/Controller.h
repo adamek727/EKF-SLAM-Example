@@ -4,12 +4,14 @@
 #include "structs/Config.h"
 #include "SimulationEngine.h"
 #include "GamepadHandler.h"
+
+#define DRAW_OPEN_CV
 #include "VisualizationEngine.h"
 #include "ekf_slam/EkfSlam2D.h"
 
 class Controller : public rclcpp::Node {
 
-    static constexpr size_t num_of_landmarks = 5;
+    static constexpr size_t num_of_landmarks = 3;
     static constexpr float landmark_assing_distance = 0.5f;
 
 public:
@@ -31,4 +33,5 @@ protected:
 
     void ekf_prediction_timer_callback();
     void visualization_timer_callback();
+    void visualize_covariance();
 };

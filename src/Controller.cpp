@@ -9,7 +9,7 @@ Controller::Controller(const Config& conf)
         , simulation_engine_(static_cast<std::shared_ptr<Node>>(this), conf)
         , gamepad_handler_{static_cast<std::shared_ptr<Node>>(this), conf}
         , visualization_engine_{static_cast<std::shared_ptr<Node>>(this)}
-        , ekf_slam_{0.0, conf_.distance_noise} {
+        , ekf_slam_{0.1, conf_.distance_noise} {
 
     gamepad_handler_.set_joystick_event_callback([&](){
         simulation_engine_.set_liner_speed(gamepad_handler_.get_right_x());
@@ -51,6 +51,9 @@ Controller::Controller(const Config& conf)
 
         // correction
         ekf_slam_.correct(measurements);
+
+        // Covariance visualization
+        visualize_covariance();
     });
 
     auto ekf_prediction_period_ms = static_cast<size_t>(conf.ekf_prediction_period * 1000.0f);
@@ -64,16 +67,14 @@ Controller::Controller(const Config& conf)
                                              this));
 
     auto process_noise_mat = rtl::Matrix<EkfSlam2D<float, num_of_landmarks>::kalman_state_vector_dim, EkfSlam2D<float, num_of_landmarks>::kalman_state_vector_dim, float>::zeros();
-    process_noise_mat.setElement(0, 0, conf.motion_noise);
-    process_noise_mat.setElement(1, 1, conf.motion_noise);
-    process_noise_mat.setElement(2, 2, conf.motion_noise);
+    process_noise_mat.setElement(0, 0, conf.motion_noise / 1.0f);
+    process_noise_mat.setElement(1, 1, conf.motion_noise / 1.0f);
+    process_noise_mat.setElement(2, 2, conf.motion_noise / 1.0f);
     ekf_slam_.set_process_noise_matrix(process_noise_mat);
 
     auto measurement_noise_mat = rtl::Matrix<EkfSlam2D<float, num_of_landmarks>::kalman_measurement_vector_dim, EkfSlam2D<float, num_of_landmarks>::kalman_measurement_vector_dim, float>::zeros();
-//    measurement_noise_mat.setElement(0, 0, conf.distance_noise);
-//    measurement_noise_mat.setElement(1, 1, conf.angle_noise);
-    measurement_noise_mat.setElement(0, 0, 0.5);
-    measurement_noise_mat.setElement(1, 1, 0.5);
+    measurement_noise_mat.setElement(0, 0, powf(conf_.distance_noise, 2.0f));
+    measurement_noise_mat.setElement(1, 1, powf(conf_.angle_noise, 2.0f));
     ekf_slam_.set_measurement_noise_matrix(measurement_noise_mat);
 }
 
@@ -103,15 +104,7 @@ void Controller::visualization_timer_callback() {
                                                                                     0}});
 
     const auto states = ekf_slam_.get_state_vector_matrix();
-    const auto cov = ekf_slam_.get_covariant_matrix_();
-    auto agent_x = states.getElement(0, 0);
-    auto agent_y = states.getElement(1, 0);
-    size_t no_of_landmarks = (states.rowNr() - 3) / 2;
-
-    cv::Mat cov_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
-    cv::eigen2cv(cov.data(), cov_img);
-    cov_img.setTo(100,cov_img>100);
-    visualization_engine_.draw_covariance_matrix(cov_img);
+    const auto cov = ekf_slam_.get_covariant_matrix();
 
     auto reduced_cov = rtl::Matrix33f();
     reduced_cov.setRow(0, rtl::Vector3f{cov.getElement(0,0), cov.getElement(0,1), cov.getElement(0,2)});
@@ -127,6 +120,21 @@ void Controller::visualization_timer_callback() {
         slam_landmarks_v.emplace_back(rtl::Vector3f{landmark.translation().trVecX(), landmark.translation().trVecY(), 0.0f});
     }
     visualization_engine_.draw_estimated_landmarks(slam_landmarks_v);
+}
+
+
+void Controller::visualize_covariance() {
+
+    const auto states = ekf_slam_.get_state_vector_matrix();
+    const auto cov = ekf_slam_.get_covariant_matrix();
+    auto agent_x = states.getElement(0, 0);
+    auto agent_y = states.getElement(1, 0);
+    size_t no_of_landmarks = (states.rowNr() - 3) / 2;
+
+    cv::Mat cov_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
+    cv::eigen2cv(cov.data(), cov_img);
+    cov_img.setTo(100,cov_img>100);
+    visualization_engine_.draw_covariance_matrix(cov_img);
 
     std::vector<VisualizationEngine::Correlation> correlations;
     for (size_t l ; l < no_of_landmarks ; l+=1) {
@@ -135,9 +143,9 @@ void Controller::visualization_timer_callback() {
         auto landmark_y = states.getElement(i+1, 0);
         auto corr = sqrtf(powf(cov.getElement(i, 0),2) + powf(cov.getElement(i+1, 1),2));
         correlations.emplace_back(
-            VisualizationEngine::Correlation{rtl::Vector3f{agent_x, agent_y, 0.0f},
-                                             rtl::Vector3f{landmark_x, landmark_y, 0.0f},
-                                             corr});
+                VisualizationEngine::Correlation{rtl::Vector3f{agent_x, agent_y, 0.0f},
+                                                 rtl::Vector3f{landmark_x, landmark_y, 0.0f},
+                                                 corr});
     }
     for (size_t l1 = 0 ; l1 < no_of_landmarks ; l1+=1) {
         for (size_t l2 = l1 + 1 ; l2 < no_of_landmarks ; l2+=1) {

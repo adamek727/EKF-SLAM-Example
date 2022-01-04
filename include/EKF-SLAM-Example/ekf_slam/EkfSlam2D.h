@@ -28,6 +28,9 @@
 #ifndef ROBOTICTEMPLATELIBRARY_EKFSLAM2D_H
 #define ROBOTICTEMPLATELIBRARY_EKFSLAM2D_H
 
+#include <cmath>
+#include <iomanip>
+
 #include "LandmarkND.h"
 #include "AgentND.h"
 #include "rtl/alg/kalman/Kalman.h"
@@ -38,7 +41,6 @@ class EkfSlam2D {
 
     static constexpr size_t dimension = 2;
     static constexpr size_t agent_states = dimension + 1;
-
 
 public:
 
@@ -65,15 +67,29 @@ public:
         auto fi = kalman_.states().getElement(2, 0);
 
         auto x_diff = rtl::Matrix<kalman_state_vector_dim, 1, dtype>::zeros();
-        x_diff.setElement(0, 0, x_diff.getElement(0, 0) + v * dt * cos(fi));
-        x_diff.setElement(1, 0, x_diff.getElement(1, 0) + v * dt * sin(fi));
-        x_diff.setElement(2, 0, x_diff.getElement(2, 0) + w * dt);
+        x_diff.setElement(0, 0, v * dt * cos(fi));
+        x_diff.setElement(1, 0, v * dt * sin(fi));
+        x_diff.setElement(2, 0, w * dt);
 
         auto G_jacobian = rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>::identity();
         G_jacobian.setElement(0, 2, v * dt * -sin(fi));
         G_jacobian.setElement(1, 2, v * dt * cos(fi));
 
         kalman_.extended_predict(x_diff, G_jacobian);
+        normalize_agent_rotation();
+
+        auto stat = kalman_.states();
+        auto cov = kalman_.covariance();
+        std::cout << std::endl << " - Prediction - Stat | Cov - - - - " << std::endl;
+        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
+
+            std::cout << std::showpos << std::setw(11) << std::setprecision(5) << stat.getElement(i,0) << "\t|\t";
+
+            for (size_t j = 0 ; j < cov.colNr() ; j++) {
+                std::cout << std::showpos << std::setw(11) << std::setprecision(5)<< cov.getElement(i, j) << "\t";
+            }
+            std::cout << std::endl;
+        }
     }
 
     void correct(const std::vector<LandmarkND<dimension, dtype>>& measurements) {
@@ -89,6 +105,27 @@ public:
 
         insert_landmarks(new_landmarks);
         update_landmarks(existing_landmarks);
+
+        auto stat = kalman_.states();
+        auto cov = kalman_.covariance();
+        std::cout << std::endl << " - Correction - Stat | Cov - - - - " << std::endl;
+        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
+
+            std::cout << std::showpos << std::setw(11) << std::setprecision(5) << stat.getElement(i,0) << "\t|\t";
+
+            for (size_t j = 0 ; j < cov.colNr() ; j++) {
+                std::cout << std::showpos << std::setw(11) << std::setprecision(5)<< cov.getElement(i, j) << "\t";
+            }
+            std::cout << std::endl;
+        }
+    }
+
+    void set_state_matrix(const rtl::Matrix<kalman_state_vector_dim, 1, dtype>& states) {
+        kalman_.set_states(states);
+    }
+
+    void set_covariance_matrix(const rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype>& cov) {
+        kalman_.set_covariance_matrix(cov);
     }
 
     void set_process_noise_matrix(const rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, dtype> process_noise) {
@@ -120,7 +157,7 @@ public:
         return kalman_.states();
     }
 
-    [[nodiscard]] const rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, float>& get_covariant_matrix_() const {
+    [[nodiscard]] const rtl::Matrix<kalman_state_vector_dim, kalman_state_vector_dim, float>& get_covariant_matrix() const {
         return kalman_.covariance();
     }
 
@@ -211,20 +248,14 @@ private:
             H_jacobian /= q;
 
             kalman_.extended_correct(z_diff, H_jacobian);
+            normalize_agent_rotation();
         }
+    }
 
+    void normalize_agent_rotation() {
         auto stat = kalman_.states();
-        auto cov = kalman_.covariance();
-        std::cout << " - Stat | Cov - - - - " << std::endl;
-        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
-
-            std::cout << stat.getElement(i,0) << "\t\t|\t\t";
-
-            for (size_t j = 0 ; j < cov.colNr() ; j++) {
-                std::cout << cov.getElement(i, j) << " ";
-            }
-            std::cout << std::endl;
-        }
+        stat.setElement(2, 0, fmod((stat.getElement(2, 0) + M_PIf32), 2*M_PIf32) - M_PIf32);
+        kalman_.set_states(stat);
     }
 };
 
