@@ -78,18 +78,18 @@ public:
         kalman_.extended_predict(x_diff, G_jacobian);
         normalize_agent_rotation();
 
-        auto stat = kalman_.states();
-        auto cov = kalman_.covariance();
-        std::cout << std::endl << " - Prediction - Stat | Cov - - - - " << std::endl;
-        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
-
-            std::cout << std::showpos << std::setw(11) << std::setprecision(5) << stat.getElement(i,0) << "\t|\t";
-
-            for (size_t j = 0 ; j < cov.colNr() ; j++) {
-                std::cout << std::showpos << std::setw(11) << std::setprecision(5)<< cov.getElement(i, j) << "\t";
-            }
-            std::cout << std::endl;
-        }
+//        auto stat = kalman_.states();
+//        auto cov = kalman_.covariance();
+//        std::cout << std::endl << " - Prediction - Stat | Cov - - - - " << std::endl;
+//        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
+//
+//            std::cout << std::showpos << std::setw(11) << std::setprecision(5) << stat.getElement(i,0) << "\t|\t";
+//
+//            for (size_t j = 0 ; j < cov.colNr() ; j++) {
+//                std::cout << std::showpos << std::setw(11) << std::setprecision(5)<< cov.getElement(i, j) << "\t";
+//            }
+//            std::cout << std::endl;
+//        }
     }
 
     void correct(const std::vector<LandmarkND<dimension, dtype>>& measurements) {
@@ -106,18 +106,18 @@ public:
         insert_landmarks(new_landmarks);
         update_landmarks(existing_landmarks);
 
-        auto stat = kalman_.states();
-        auto cov = kalman_.covariance();
-        std::cout << std::endl << " - Correction - Stat | Cov - - - - " << std::endl;
-        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
-
-            std::cout << std::showpos << std::setw(11) << std::setprecision(5) << stat.getElement(i,0) << "\t|\t";
-
-            for (size_t j = 0 ; j < cov.colNr() ; j++) {
-                std::cout << std::showpos << std::setw(11) << std::setprecision(5)<< cov.getElement(i, j) << "\t";
-            }
-            std::cout << std::endl;
-        }
+//        auto stat = kalman_.states();
+//        auto cov = kalman_.covariance();
+//        std::cout << std::endl << " - Correction - Stat | Cov - - - - " << std::endl;
+//        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
+//
+//            std::cout << std::showpos << std::setw(11) << std::setprecision(5) << stat.getElement(i,0) << "\t|\t";
+//
+//            for (size_t j = 0 ; j < cov.colNr() ; j++) {
+//                std::cout << std::showpos << std::setw(11) << std::setprecision(5)<< cov.getElement(i, j) << "\t";
+//            }
+//            std::cout << std::endl;
+//        }
     }
 
     void set_state_matrix(const rtl::Matrix<kalman_state_vector_dim, 1, dtype>& states) {
@@ -220,6 +220,7 @@ private:
 
         auto robot = get_agent_state();
         auto robot_yaw = robot.rotation().rotAngle();
+        std::cout << "-----------------------------" << std::endl;
         for (const auto& landmark : landmarks) {
             size_t matrix_index = agent_states + landmark.id() * 2;
             auto d_x = landmark.translation().trVecX() - robot.translation().trVecX();
@@ -234,10 +235,19 @@ private:
 
             auto lm = get_landmark(landmark.id());
             auto z_map = rtl::Matrix<kalman_measurement_vector_dim, 1, dtype>::zeros();
-            z_map.setElement(0, 0, sqrtf(powf(lm.translation().trVecX(), 2.0f) + powf(lm.translation().trVecY(), 2.0f)));
-            z_map.setElement(1, 0, atan2(lm.translation().trVecY(), lm.translation().trVecX()) - robot_yaw);
+            z_map.setElement(0, 0, sqrtf(powf(lm.translation().trVecX() - robot.translation().trVecX(), 2.0f) +
+                                         powf(lm.translation().trVecY() - robot.translation().trVecY(), 2.0f)));
+            z_map.setElement(1, 0, atan2(lm.translation().trVecY() - robot.translation().trVecY(),
+                                         lm.translation().trVecX() - robot.translation().trVecX()) - robot_yaw);
 
             auto z_diff = z_measurement - z_map;
+            std::cout << std::endl << " - Z_diff - - - - " << landmark.id() << std::endl;
+            for (size_t i = 0 ; i < z_diff.rowNr() ; i++) {
+                for (size_t j = 0 ; j < z_diff.colNr() ; j++) {
+                    std::cout << landmark.id() << std::showpos << std::setw(11) << std::setprecision(5)<< z_diff.getElement(i, j) << "\t";
+                }
+                std::cout << std::endl;
+            }
 
             auto H_jacobian = rtl::Matrix<kalman_measurement_vector_dim, kalman_state_vector_dim, dtype>::zeros();
             H_jacobian.setColumn(0, rtl::VectorND<2, dtype>{-d*d_x, d_y});

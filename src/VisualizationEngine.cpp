@@ -174,26 +174,30 @@ void VisualizationEngine::draw_correlations(std::vector<Correlation> correlation
 
 void VisualizationEngine::draw_covariance_matrix(const cv::Mat& mat) {
 
+//#ifdef DRAW_OPEN_CV
+    cv::Mat upscaled_mat, cutted, norm_f, norm_i;
+
+    double min, max;
+    cv::minMaxLoc(mat, &min, &max);
+    cutted = mat.clone();
+    cutted.setTo(max, cutted >= max);
+
+    normalize(cutted, norm_f, 0, 1, cv::NORM_MINMAX,CV_32FC1);
+    cv::resize(norm_f, upscaled_mat, cv::Size(400, 400), cv::INTER_NEAREST);
+    cv::imshow("cov mat", upscaled_mat);
+    cv::waitKey(1);
+//#endif
+
     auto msg = sensor_msgs::msg::Image();
 
     std_msgs::msg::Header header;
     header.stamp = node_->get_clock()->now();
     header.frame_id = frames::ORIGIN();
 
-    auto img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1, mat);
+    auto img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1, norm_f);
     img_bridge.toImageMsg(msg);
 
     backend_.visualize(msg, topics::COV_MATRIX());
-
-//#ifdef DRAW_OPEN_CV
-    cv::Mat upscaled_mat, norm_f, norm_i;
-    cv::resize(mat, upscaled_mat, cv::Size(400, 400), cv::INTER_NEAREST);
-    normalize(upscaled_mat, norm_f, 0, 1, cv::NORM_MINMAX,CV_32FC1);
-    normalize(upscaled_mat, norm_i, 0, 255, cv::NORM_MINMAX,CV_8SC1);
-    cv::imshow("cov mat", norm_f);
-    cv::imwrite("img.bmp", norm_i);
-    cv::waitKey(1);
-//#endif
 }
 
 

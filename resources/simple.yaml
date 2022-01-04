@@ -23,7 +23,7 @@ simulation:
 
   sensor_range: 3.0
 
-  visualization_period: 0.05
+  visualization_period: 0.1
   ekf_prediction_period: 0.1
 
-  motion_noise: 0.001
+  motion_noise: 0.0

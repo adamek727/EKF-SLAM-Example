@@ -20,8 +20,8 @@ landmarks:  # x, y, z
   - [-4, 0, 0]
 
 measurement:
-  angle_noise: 0.01
-  distance_noise: 0.01
+  angle_noise: 0.001
+  distance_noise: 0.001
 
 gamepad:
   gamepad_period: 0.1
@@ -38,4 +38,4 @@ simulation:
   visualization_period: 0.05
   ekf_prediction_period: 0.1
 
-  motion_noise: 0.001
+  motion_noise: 0.00001
