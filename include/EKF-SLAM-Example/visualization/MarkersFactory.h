@@ -46,6 +46,20 @@ public:
         marker.action = visualization_msgs::msg::Marker::ADD;
         return marker;
     }
+
+    static visualization_msgs::msg::Marker create_line_strip(const Meta& meta) {
+        auto marker = basic_marker(meta);
+        marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        return marker;
+    }
+
+    static visualization_msgs::msg::Marker create_text(const Meta& meta) {
+        auto marker = basic_marker(meta);
+        marker.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        return marker;
+    }
 private:
 
     static visualization_msgs::msg::Marker basic_marker(const Meta& meta) {
@@ -53,6 +67,7 @@ private:
         marker.header.frame_id = meta.frame;
         marker.header.stamp = meta.time;
         marker.id = meta.id;
+        marker.text = meta.text;
         set_marker_pose(marker, meta);
         set_marker_orientation(marker, meta);
         set_marker_scale(marker, meta);

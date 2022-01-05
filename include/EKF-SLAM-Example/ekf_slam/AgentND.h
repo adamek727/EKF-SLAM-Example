@@ -51,4 +51,4 @@ private:
     rtl::RotationND<dimension, dtype> rotation_;
 };
 
-#endif ROBOTICTEMPLATELIBRARY_AGENT_H
+#endif

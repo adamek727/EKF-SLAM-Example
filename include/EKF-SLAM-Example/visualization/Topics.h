@@ -27,6 +27,11 @@ namespace topics {
         return str;
     }
 
+    inline const std::string& LANDMARK_MEASUREMENTS_WRT_ESTIMATED_ROBOT() {
+        static const std::string str = PRESET() + "/landmark_measurements_wrt_estimated_robot";
+        return str;
+    }
+
     inline const std::string& ESTIMATED_ROBOT() {
         static const std::string str = PRESET() + "/estimated_robot";
         return str;
@@ -44,6 +49,16 @@ namespace topics {
 
     inline const std::string& CORRELATIONS() {
         static const std::string str = PRESET() + "/correlations";
+        return str;
+    }
+
+    inline const std::string& TRAJECTORY_GT() {
+        static const std::string str = PRESET() + "/trajectory_gt";
+        return str;
+    }
+
+    inline const std::string& ESTIMATED_TRAJECTORY() {
+        static const std::string str = PRESET() + "/estimated_trajectory";
         return str;
     }
 

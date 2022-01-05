@@ -22,10 +22,8 @@ int main(int argc, char* argv[]) {
         // Reading pose
         auto init_pose = yaml_config.getFloatArray({"init_pose", "pose"});
         auto init_orientation = yaml_config.getFloatArray({"init_pose", "orientation"});
-
         auto translation = rtl::Translation3f {init_pose[0], init_pose[1], init_pose[2]};
         auto orientation = rtl::Rotation3f(init_orientation[0], init_orientation[1], init_orientation[2]);
-
         conf.initial_pose = rtl::RigidTf3f {orientation, translation};
 
         // Reasing Landmarks
@@ -34,22 +32,32 @@ int main(int argc, char* argv[]) {
             conf.landmarks.emplace_back(rtl::Vector3f{landmark_pose[0], landmark_pose[1], landmark_pose[2]});
         }
 
-        //Reading noise config
-        conf.angle_noise = yaml_config.getFloatValue({"measurement", "angle_noise"});
-        conf.distance_noise = yaml_config.getFloatValue({"measurement", "distance_noise"});
-        conf.motion_noise = yaml_config.getFloatValue({"simulation", "motion_noise"});
 
-        // Read gamepad config
-        conf.gamepad_period = yaml_config.getFloatValue({"gamepad", "gamepad_period"});
+        conf.ekf_conf = EkfConfig{
+            .angle_noise = yaml_config.getFloatValue({"ekf_slam", "angle_noise"}),
+            .distance_noise = yaml_config.getFloatValue({"ekf_slam", "distance_noise"}),
+            .motion_noise = yaml_config.getFloatValue({"ekf_slam", "motion_noise"}),
+            .ekf_prediction_period = yaml_config.getFloatValue({"ekf_slam", "ekf_prediction_period"}),
+        };
 
-        // Reading simulation parameters
-        conf.simulation_loop_period = yaml_config.getFloatValue({"simulation", "loop_period"});
-        conf.landmark_measurement_period = yaml_config.getFloatValue({"simulation", "landmark_measurement_period"});
-        conf.linear_speed_coef = yaml_config.getFloatValue({"simulation", "linear_speed_coef"});
-        conf.angular_speed_coef = yaml_config.getFloatValue({"simulation", "angular_speed_coef"});
-        conf.sensor_range = yaml_config.getFloatValue({"simulation", "sensor_range"});
-        conf.visualization_period = yaml_config.getFloatValue({"simulation", "visualization_period"});
-        conf.ekf_prediction_period = yaml_config.getFloatValue({"simulation", "ekf_prediction_period"});
+        conf.sim_conf = SimulationConfig{
+            .angle_noise = yaml_config.getFloatValue({"simulation", "angle_noise"}),
+            .distance_noise = yaml_config.getFloatValue({"simulation", "distance_noise"}),
+            .motion_noise = yaml_config.getFloatValue({"simulation", "motion_noise"}),
+            .sensor_range = yaml_config.getFloatValue({"simulation", "sensor_range"}),
+            .linear_speed_coef = yaml_config.getFloatValue({"simulation", "linear_speed_coef"}),
+            .angular_speed_coef = yaml_config.getFloatValue({"simulation", "angular_speed_coef"}),
+            .simulation_loop_period = yaml_config.getFloatValue({"simulation", "loop_period"}),
+            .landmark_measurement_period = yaml_config.getFloatValue({"simulation", "landmark_measurement_period"}),
+        };
+
+        conf.gamepad_conf = GamepadConfig {
+            .gamepad_period = yaml_config.getFloatValue({"gamepad", "gamepad_period"}),
+        };
+
+        conf.visualization_config = VisualizationConfig {
+            .visualization_period = yaml_config.getFloatValue({"visualization", "visualization_period"}),
+        };
 
     } catch (std::exception& e) {
         std::cerr << "Exception when reading config: " << e.what() << std::endl;

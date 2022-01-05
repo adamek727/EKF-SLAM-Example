@@ -12,8 +12,8 @@ public:
     SimulationEngine() = delete;
     SimulationEngine(std::shared_ptr<rclcpp::Node> node, const Config& conf);
 
-    void set_liner_speed(float speed) {robot_liner_speed_ = speed * conf_.linear_speed_coef;};
-    void set_angular_speed(float ang_speed) {robot_angular_speed_ = ang_speed * conf_.angular_speed_coef;};
+    void set_liner_speed(float speed) {robot_liner_speed_ = speed * conf_.sim_conf.linear_speed_coef;};
+    void set_angular_speed(float ang_speed) {robot_angular_speed_ = ang_speed * conf_.sim_conf.angular_speed_coef;};
 
     void set_landmark_callback(std::function<void()> f) {landmark_measured_callback_ = f;}
 

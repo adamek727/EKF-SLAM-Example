@@ -50,4 +50,4 @@ private:
     int id_;
 };
 
-#endif ROBOTICTEMPLATELIBRARY_LANDMARKND_H
+#endif

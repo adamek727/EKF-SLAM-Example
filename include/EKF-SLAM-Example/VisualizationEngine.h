@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <deque>
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
@@ -11,6 +11,7 @@
 #include "rtl/Transformation.h"
 
 #include "EKF-SLAM-Example/structs/LandmarkMeasurement.h"
+#include "EKF-SLAM-Example/ekf_slam/AgentND.h"
 
 #include "visualization/BackendRos2.h"
 #include "visualization/MarkersFactory.h"
@@ -49,7 +50,11 @@ public:
     void draw_pose_with_covariance(const rtl::Vector3f& pose, float yaw, const rtl::Matrix33f& cov);
 
     void draw_estimated_robot(const rtl::RigidTf3f& pose);
-    void draw_estimated_landmarks(const std::vector<rtl::Vector3f>& landmarks);
+    void draw_estimated_landmarks(const std::vector<std::pair<rtl::Vector3f, size_t>>& landmarks);
+    void draw_measurements_wrt_estimated_robot(const std::vector<LandmarkMeasurement>& measurements, const AgentND<2, float>& agent);
+
+    void draw_real_trajectory(const std::deque<rtl::Vector3f>& trajectory);
+    void draw_estimated_trajectory(const std::deque<rtl::Vector3f>& trajectory);
 
 private:
 
