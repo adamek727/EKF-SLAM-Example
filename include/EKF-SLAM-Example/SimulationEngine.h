@@ -15,7 +15,7 @@ public:
     void set_liner_speed(float speed) {robot_liner_speed_ = speed * conf_.sim_conf.linear_speed_coef;};
     void set_angular_speed(float ang_speed) {robot_angular_speed_ = ang_speed * conf_.sim_conf.angular_speed_coef;};
 
-    void set_landmark_callback(std::function<void()> f) {landmark_measured_callback_ = f;}
+    void set_measurement_callback(std::function<void()> f) { landmark_measured_callback_ = f;}
 
     [[nodiscard]] const rtl::RigidTf3f & get_robot_pose() const {return robot_pose_;}
 
