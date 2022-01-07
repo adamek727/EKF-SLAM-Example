@@ -6,7 +6,9 @@ GamepadHandler::GamepadHandler(std::shared_ptr<rclcpp::Node> node, const Config&
         , gamepadHandler_{nullptr} {
 
     auto gamepad_ms = static_cast<size_t>(conf_.gamepad_conf.gamepad_period * 1000.0f);
-    gamepad_timer_ = node_->create_wall_timer(100ms, std::bind(&GamepadHandler::on_gamepad_timer_event, this));
+    gamepad_timer_ = node_->create_wall_timer(std::chrono::milliseconds(gamepad_ms),
+                                              std::bind(&GamepadHandler::on_gamepad_timer_event,
+                                              this));
 
     gamepad_joystick_dead_zone_ = 0.1;
     reset_states();

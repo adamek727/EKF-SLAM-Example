@@ -323,7 +323,7 @@ void VisualizationEngine::draw_measurements_wrt_estimated_robot(const std::vecto
         MarkersFactory::Meta line_meta {
                 .pose = rtl::Vector3f ::zeros(),
                 .orientation = rtl::Quaternionf::identity(),
-                .scale = rtl::Vector3f {0.02f, 0.02f, 0.02f},
+                .scale = rtl::Vector3f {0.05f, 0.0f, 0.0f},
                 .color = Colors::White,
                 .points = {agent_pose + rtl::Vector3f{0.0f, 0.0f, 0.15f},
                            landmark_pose + rtl::Vector3f{0.0f, 0.0f, 0.15f}},

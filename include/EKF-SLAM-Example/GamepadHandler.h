@@ -41,8 +41,8 @@ protected:
     void on_joystick_axis_moved(uint8_t axis, int16_t value);
     void reset_states();
 
-    const Config& conf_;
     std::shared_ptr<rclcpp::Node> node_;
+    const Config& conf_;
     SDL_GameController *gamepadHandler_;
     rclcpp::TimerBase::SharedPtr gamepad_timer_;
 

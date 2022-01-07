@@ -61,5 +61,4 @@ namespace topics {
         static const std::string str = PRESET() + "/estimated_trajectory";
         return str;
     }
-
 }

@@ -43,7 +43,7 @@ public:
     }
 
     const rtl::TranslationND<dimension, dtype>& translation() const {return translation_;}
-    const int id() const {return id_;}
+    int id() const {return id_;}
 
 private:
     rtl::TranslationND<dimension, dtype> translation_;

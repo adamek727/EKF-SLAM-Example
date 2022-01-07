@@ -1,4 +1,7 @@
 #include "EKF-SLAM-Example/Controller.h"
+
+#include <chrono>
+
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui.hpp>
 #include <rtl/Algorithms.h>
@@ -17,15 +20,24 @@ Controller::Controller(const Config& conf)
     });
 
     simulation_engine_.set_measurement_callback([&]() {
+
+        auto t_start = std::chrono::high_resolution_clock::now();
+
         auto landmark_measurements = simulation_engine_.get_landmark_measurements();
+        auto slam_landmarks = ekf_slam_.get_landmarks();
 
         auto agent = ekf_slam_.get_agent_state();
         auto agent_tr_3d = rtl::Translation3f{rtl::Vector3f{agent.translation().trVecX(), agent.translation().trVecY(), 0.0f}};
         auto agent_rot_3d = rtl::Rotation3f{rtl::Quaternionf{0.0f, 0.0f, agent.rotation().rotAngle()}};
         auto agent_tf_3d = rtl::RigidTf3f{agent_rot_3d, agent_tr_3d};
 
+
         auto matched_measurements = match_measurements_to_landmarks(landmark_measurements, agent_tf_3d);
         ekf_slam_.correct(matched_measurements);
+
+        auto t_stop = std::chrono::high_resolution_clock::now();
+        auto duration = duration_cast<std::chrono::microseconds>(t_stop - t_start);
+        std::cout << "Correction duration: " << duration.count() << "us" << std::endl;
 
         visualization_engine_.draw_measurements_wrt_estimated_robot(simulation_engine_.get_landmark_measurements(), agent);
         visualize_covariance();
@@ -126,7 +138,7 @@ void Controller::visualize_covariance() {
     visualization_engine_.draw_covariance_matrix(cov_img);
 
     std::vector<VisualizationEngine::Correlation> correlations;
-    for (size_t l ; l < no_of_landmarks ; l+=1) {
+    for (size_t l = 0; l < no_of_landmarks ; l+=1) {
         size_t i = 3 + (l * 2);
         auto landmark_x = states.getElement(i, 0);
         auto landmark_y = states.getElement(i+1, 0);
@@ -180,11 +192,11 @@ std::vector<LandmarkND<2, Controller::EkfSlamDtype>> Controller::mark_measuremen
     std::vector<LandmarkND<2, float>> measurements_with_id;
     for (size_t m = 0; m < measurements.size(); m += 1) {
         const auto result = matched_measurements.at(m);
-        auto measurement = measurements.at(result.col);
+        auto measurement = measurements.at(result.row);
         measurement.sensor_pose = agent_tf;
         auto pose = measurement.to_xy();
         if (result.cost > 0.0f) {
-            measurements_with_id.push_back(LandmarkND<2, float>{rtl::TranslationND<2, float>{pose.x(), pose.y()}, static_cast<int>(result.row)});
+            measurements_with_id.push_back(LandmarkND<2, float>{rtl::TranslationND<2, float>{pose.x(), pose.y()}, static_cast<int>(result.col)});
         } else {
             measurements_with_id.push_back(LandmarkND<2, float>{rtl::TranslationND<2, float>{pose.x(), pose.y()}, -1});
         }
