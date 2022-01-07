@@ -27,6 +27,10 @@ void SimulationEngine::simulation_step_timer_callback() {
     robot_pose_ = rtl::RigidTf3f{rtl::Rotation3f{r, p, y + robot_angular_speed_ * conf_.sim_conf.simulation_loop_period},
                                  robot_pose_.tr()};
 
+    if (r != 0.0f || p != 0.0f || y < -M_PIf32 || y > M_PIf32) {
+        int i = 5;
+    }
+
     // translate
     rtl::Vector3f tr_vector{robot_liner_speed_ * conf_.sim_conf.simulation_loop_period, 0.0f, 0.0f};
     auto noise = rtl::Vector3f{gaussian_random_val(0.0, conf_.sim_conf.motion_noise),
@@ -53,12 +57,19 @@ void SimulationEngine::landmark_measurement_timer_callback() {
             float r,p,y;
             measurement_orientation.rotRpy(r, p, y);
 
+            if (r != 0.0f || p != 0.0f || y < -M_PIf32 || y > M_PIf32) {
+                int i = 5;
+            }
             landmark_measurements_.emplace_back(
                     LandmarkMeasurement{
                         .sensor_pose = robot_pose_,
                         .pitch = 0.0f,
                         .yaw = y + gaussian_random_val(0.0, conf_.sim_conf.angle_noise),
                         .range = distance + gaussian_random_val(0.0, conf_.sim_conf.distance_noise)});
+
+            if (landmark_measurements_.back().yaw > M_PI || landmark_measurements_.back().yaw < -M_PI) {
+                int i = 5;
+            }
         }
     }
     landmark_measured_callback_();

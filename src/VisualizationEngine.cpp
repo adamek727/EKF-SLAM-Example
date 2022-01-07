@@ -323,7 +323,7 @@ void VisualizationEngine::draw_measurements_wrt_estimated_robot(const std::vecto
         MarkersFactory::Meta line_meta {
                 .pose = rtl::Vector3f ::zeros(),
                 .orientation = rtl::Quaternionf::identity(),
-                .scale = rtl::Vector3f {0.02f, 0.02f, 0.02f},
+                .scale = rtl::Vector3f {0.05f, 0.0f, 0.0f},
                 .color = Colors::White,
                 .points = {agent_pose + rtl::Vector3f{0.0f, 0.0f, 0.15f},
                            landmark_pose + rtl::Vector3f{0.0f, 0.0f, 0.15f}},
@@ -395,4 +395,58 @@ void VisualizationEngine::draw_estimated_trajectory(const std::deque<rtl::Vector
     msg.markers.emplace_back(MarkersFactory::create_line_strip(trajectory_meta));
 
     backend_.visualize(msg, topics::ESTIMATED_TRAJECTORY());
+}
+
+
+void VisualizationEngine::draw_landmark_matches(const std::vector<std::pair<LandmarkMeasurement, LandmarkND<2, float>>>& measurements_and_landmarks, const AgentND<2, float>& agent) {
+
+    visualization_msgs::msg::MarkerArray msg;
+    int marker_count = 0;
+    static int max_marker_count = 0;
+
+    auto agent_pose = rtl::Vector3f{agent.translation().trVecX(), agent.translation().trVecY(), 0.0f};
+    auto agent_rotation = rtl::Rotation3f{rtl::Quaternionf{0.0f, 0.0f, agent.rotation().rotAngle()}};
+
+    for (const auto& m_l : measurements_and_landmarks) {
+        auto measurement = m_l.first;
+        auto landmark = m_l.second;
+
+        auto relative_landmark_pose = rtl::Vector3f{measurement.range, 0.0f, 0.0f};
+        auto relative_landmark_rotation = rtl::Rotation3f{rtl::Quaternionf{0.0f, 0.0f, measurement.yaw}};
+        auto measurement_pose = measurement.sensor_pose.trVec() +
+                                relative_landmark_pose
+                                     .transformed(relative_landmark_rotation)
+                                     .transformed(measurement.sensor_pose.rot());
+
+        MarkersFactory::Meta line_meta{
+                .pose = rtl::Vector3f::zeros(),
+                .orientation = rtl::Quaternionf::identity(),
+                .scale = rtl::Vector3f{0.05f, 0.0f, 0.0f},
+                .color = Colors::Red,
+                .points = {measurement_pose + rtl::Vector3f{0.0f, 0.0f, 0.2f},
+                           rtl::Vector3f{landmark.translation().trVecX(), landmark.translation().trVecY(), 0.0f} + rtl::Vector3f{0.0f, 0.0f, 0.2f}},
+                .id = marker_count++,
+                .frame = frames::ORIGIN(),
+                .time = node_->get_clock()->now(),
+        };
+        msg.markers.emplace_back(MarkersFactory::create_line_list(line_meta));
+
+
+        for (; marker_count < max_marker_count;) {
+            MarkersFactory::Meta line_meta{
+                    .pose = rtl::Vector3f::zeros(),
+                    .orientation = rtl::Quaternionf::identity(),
+                    .scale = rtl::Vector3f::zeros(),
+                    .color = Colors::Invisible,
+                    .points = {},
+                    .id = marker_count++,
+                    .frame = frames::ORIGIN(),
+                    .time = node_->get_clock()->now(),
+            };
+            msg.markers.emplace_back(MarkersFactory::create_line_list(line_meta));
+        }
+    }
+
+    max_marker_count = marker_count;
+    backend_.visualize(msg, topics::LANDMARK_MATCHES());
 }

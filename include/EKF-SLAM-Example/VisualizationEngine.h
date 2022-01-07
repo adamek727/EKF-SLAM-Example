@@ -20,6 +20,7 @@
 #include "visualization/Frames.h"
 #include "visualization/Colors.h"
 
+#include "EKF-SLAM-Example/ekf_slam/LandmarkND.h"
 
 class VisualizationEngine {
 
@@ -55,6 +56,7 @@ public:
 
     void draw_real_trajectory(const std::deque<rtl::Vector3f>& trajectory);
     void draw_estimated_trajectory(const std::deque<rtl::Vector3f>& trajectory);
+    void draw_landmark_matches(const std::vector<std::pair<LandmarkMeasurement, LandmarkND<2, float>>>& measurements_and_landmarks, const AgentND<2, float>& agent);
 
 private:
 

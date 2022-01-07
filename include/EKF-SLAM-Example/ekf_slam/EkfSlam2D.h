@@ -64,6 +64,13 @@ public:
     }
 
     void predict(dtype v, dtype w, dtype dt) {
+
+        static float fi_pre = 0;
+        static float fi_post = 0;
+
+
+        fi_pre = kalman_.states().getElement(2,0);
+
         auto fi = kalman_.states().getElement(2, 0);
 
         auto x_diff = rtl::Matrix<kalman_state_vector_dim, 1, dtype>::zeros();
@@ -78,6 +85,11 @@ public:
         kalman_.extended_predict(x_diff, G_jacobian);
         normalize_agent_rotation();
 
+        fi_post = kalman_.states().getElement(2,0);
+        auto fi_dif = abs(fi_pre-fi_post);
+        if (fi_dif > 0.3 && fi_dif < 6) {
+            int i = 0;
+        }
 //        auto stat = kalman_.states();
 //        auto cov = kalman_.covariance();
 //        std::cout << std::endl << " - Prediction - Stat | Cov - - - - " << std::endl;
@@ -93,6 +105,12 @@ public:
     }
 
     void correct(const std::vector<LandmarkND<dimension, dtype>>& measurements) {
+        static float fi_pre = 0;
+        static float fi_post = 0;
+
+        auto stat = kalman_.states();
+        fi_pre = kalman_.states().getElement(2,0);
+
         std::vector<LandmarkND<dimension, dtype>> new_landmarks;
         std::vector<LandmarkND<dimension, dtype>> existing_landmarks;
         for (const auto& measurement : measurements) {
@@ -106,18 +124,24 @@ public:
         insert_landmarks(new_landmarks);
         update_landmarks(existing_landmarks);
 
-        auto stat = kalman_.states();
-        auto cov = kalman_.covariance();
-        std::cout << std::endl << " - Correction - Stat | Cov - - - - " << std::endl;
-        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
-
-            std::cout << std::showpos << std::setw(11) << std::setprecision(5) << stat.getElement(i,0) << "\t|\t";
-
-            for (size_t j = 0 ; j < cov.colNr() ; j++) {
-                std::cout << std::showpos << std::setw(11) << std::setprecision(5)<< cov.getElement(i, j) << "\t";
-            }
-            std::cout << std::endl;
+        fi_post = kalman_.states().getElement(2,0);
+        auto fi_dif = abs(fi_pre-fi_post);
+        if (fi_dif > 0.3 && fi_dif < 6) {
+            int i = 0;
         }
+
+//        auto stat = kalman_.states();
+//        auto cov = kalman_.covariance();
+//        std::cout << std::endl << " - Correction - Stat | Cov - - - - " << std::endl;
+//        for (size_t i = 0 ; i < cov.rowNr() ; i++) {
+//
+//            std::cout << std::showpos << std::setw(11) << std::setprecision(5) << stat.getElement(i,0) << "\t|\t";
+//
+//            for (size_t j = 0 ; j < cov.colNr() ; j++) {
+//                std::cout << std::showpos << std::setw(11) << std::setprecision(5)<< cov.getElement(i, j) << "\t";
+//            }
+//            std::cout << std::endl;
+//        }
     }
 
     void set_state_matrix(const rtl::Matrix<kalman_state_vector_dim, 1, dtype>& states) {
@@ -221,17 +245,26 @@ private:
         auto robot = get_agent_state();
         auto robot_yaw = robot.rotation().rotAngle();
 
+        std::cout << " - Measurements - " << std::endl;
+        auto H_jacobian = rtl::Matrix<kalman_measurement_vector_dim, kalman_state_vector_dim, dtype>::zeros();
         for (const auto& landmark : landmarks) {
+            std::cout << " - - - - - " << std::endl;
             size_t matrix_index = agent_states + landmark.id() * 2;
             auto d_x = landmark.translation().trVecX() - robot.translation().trVecX();
             auto d_y = landmark.translation().trVecY() - robot.translation().trVecY();
             auto q = powf(d_x, 2) + powf(d_y, 2);
             auto d = sqrtf(q);
             auto fi = atan2f(d_y, d_x);
+            std::cout << "d_x: " << d_x << std::endl;
+            std::cout << "d_y: " << d_y << std::endl;
+            std::cout << "q: " << q << std::endl;
+            std::cout << "d: " << d << std::endl;
+            std::cout << "fi: " << fi << std::endl;
 
             auto z_measurement = rtl::Matrix<kalman_measurement_vector_dim, 1, dtype>::zeros();
             z_measurement.setElement(0, 0, d);
-            z_measurement.setElement(1, 0, fi - robot_yaw);
+            z_measurement.setElement(1, 0, normalize_angle(fi - robot_yaw));
+            std::cout << "mea: "<< z_measurement.getElement(0,0) << " " << z_measurement.getElement(1,0) << " " << landmark.id() << std::endl;
 
             auto lm = get_landmark(landmark.id());
             auto z_map = rtl::Matrix<kalman_measurement_vector_dim, 1, dtype>::zeros();
@@ -239,15 +272,11 @@ private:
                                          powf(lm.translation().trVecY() - robot.translation().trVecY(), 2.0f)));
             z_map.setElement(1, 0, atan2(lm.translation().trVecY() - robot.translation().trVecY(),
                                          lm.translation().trVecX() - robot.translation().trVecX()) - robot_yaw);
+            std::cout << "map: "<< z_map.getElement(0,0) << " " << z_map.getElement(1,0) << " " << landmark.id() << std::endl;
 
             auto z_diff = z_measurement - z_map;
-//            std::cout << std::endl << " - Z_diff - - - - " << landmark.id() << std::endl;
-//            for (size_t i = 0 ; i < z_diff.rowNr() ; i++) {
-//                for (size_t j = 0 ; j < z_diff.colNr() ; j++) {
-//                    std::cout << landmark.id() << std::showpos << std::setw(11) << std::setprecision(5)<< z_diff.getElement(i, j) << "\t";
-//                }
-//                std::cout << std::endl;
-//            }
+            z_diff.setElement(1, 0, normalize_angle(z_diff.getElement(1, 0)));
+            std::cout << "dif: "<< z_diff.getElement(0,0) << " " << z_diff.getElement(1,0) << " " << landmark.id() << std::endl;
 
             auto H_jacobian = rtl::Matrix<kalman_measurement_vector_dim, kalman_state_vector_dim, dtype>::zeros();
             H_jacobian.setColumn(0, rtl::VectorND<2, dtype>{-d*d_x, d_y});
@@ -263,9 +292,17 @@ private:
     }
 
     void normalize_agent_rotation() {
-        auto stat = kalman_.states();
-        stat.setElement(2, 0, fmod((stat.getElement(2, 0) + M_PIf32), 2*M_PIf32) - M_PIf32);
-        kalman_.set_states(stat);
+        auto states = kalman_.states();
+        auto fi = states.getElement(2, 0);
+        states.setElement(2, 0, normalize_angle(fi));
+        kalman_.set_states(states);
+    }
+
+    float normalize_angle(const float angle) {
+        return atan2f(sinf(angle), cosf(angle));
+//        if (angle > M_PIf32) return angle - M_PIf32;
+//        if (angle < -M_PIf32) return angle + M_PIf32;
+//        return angle;
     }
 };
 

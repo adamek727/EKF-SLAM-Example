@@ -1,4 +1,7 @@
 #include "EKF-SLAM-Example/Controller.h"
+
+#include <chrono>
+
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui.hpp>
 #include <rtl/Algorithms.h>
@@ -18,6 +21,7 @@ Controller::Controller(const Config& conf)
 
     simulation_engine_.set_landmark_callback([&](){
         auto landmark_measurements = simulation_engine_.get_landmark_measurements();
+        auto slam_landmarks = ekf_slam_.get_landmarks();
 
         auto agent = ekf_slam_.get_agent_state();
         auto agent_tr_3d = rtl::Translation3f{rtl::Vector3f{agent.translation().trVecX(), agent.translation().trVecY(), 0.0f}};
@@ -27,23 +31,40 @@ Controller::Controller(const Config& conf)
 
         // landmark assignment
         std::vector<LandmarkND<2, float>> measurements;
+        std::vector<std::pair<LandmarkMeasurement , LandmarkND<2, float>>> measurements_and_landmarks{};
+
+//        std::cout << " - Match results - - - - - " << std::endl;
+//        for(const auto& result : assignment_results) {
+//            std::cout << result.row << " " << result.col << " " << result.cost << std::endl;
+//        }
+//        std::cout << std::endl;
+
         for (size_t m = 0 ; m < landmark_measurements.size() ; m+=1) {
             const auto result = assignment_results.at(m);
-            auto measurement = landmark_measurements.at(result.col);
+            auto measurement = landmark_measurements.at(result.row);
             measurement.sensor_pose = rtl::RigidTf3f{agent_rot_3d, agent_tr_3d};
             auto pose = measurement.to_xy();
             if (result.cost > 0.0f) {
-                measurements.push_back(LandmarkND<2, float>{rtl::TranslationND<2, float>{pose.x(), pose.y()}, static_cast<int>(result.row)});
+                measurements.push_back(LandmarkND<2, float>{rtl::TranslationND<2, float>{pose.x(), pose.y()}, static_cast<int>(result.col)});
+                measurements_and_landmarks.emplace_back(std::pair<LandmarkMeasurement, LandmarkND<2, float>>{
+                        measurement, slam_landmarks.at(result.col)
+                });
             } else {
                 measurements.push_back(LandmarkND<2, float>{rtl::TranslationND<2, float>{pose.x(), pose.y()}, -1});
             }
         }
 
         // correction
+
+        auto start = std::chrono::high_resolution_clock::now();
         ekf_slam_.correct(measurements);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Correction duration: " << duration.count() << std::endl;
 
         // Covariance visualization
         visualization_engine_.draw_measurements_wrt_estimated_robot(simulation_engine_.get_landmark_measurements(), agent);
+        visualization_engine_.draw_landmark_matches(measurements_and_landmarks, agent);
         visualize_covariance();
     });
 

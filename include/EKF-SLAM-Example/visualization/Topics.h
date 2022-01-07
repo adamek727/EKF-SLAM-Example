@@ -62,4 +62,8 @@ namespace topics {
         return str;
     }
 
+    inline const std::string& LANDMARK_MATCHES() {
+        static const std::string str = PRESET() + "/landmark_matches";
+        return str;
+    }
 }
