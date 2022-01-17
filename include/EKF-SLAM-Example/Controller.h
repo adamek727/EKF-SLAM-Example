@@ -1,9 +1,11 @@
 #pragma once
 
 #include <deque>
+#include <mutex>
+
+#define EIGEN_STACK_ALLOCATION_LIMIT 10000000
 
 #include <rclcpp/rclcpp.hpp>
-
 #include <rtl/Algorithms.h>
 
 #include "structs/Config.h"
@@ -16,7 +18,7 @@
 
 class Controller : public rclcpp::Node {
 
-    static constexpr size_t num_of_landmarks = 20;
+    static constexpr size_t num_of_landmarks = 200;
     static constexpr float landmark_assign_distance = 1.0f;
     static constexpr size_t trajectory_history_size = 500;
 
@@ -35,6 +37,7 @@ protected:
     const Config conf_;
     SimulationEngine simulation_engine_;
     GamepadHandler gamepad_handler_;
+    std::mutex slam_mutex_;
 
     rclcpp::TimerBase::SharedPtr visualization_timer_;
     rclcpp::TimerBase::SharedPtr ekf_prediction_timer_;

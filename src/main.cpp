@@ -1,7 +1,6 @@
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
 
-
 #include "YAML-Service/YAML-Service.h"
 #include "EKF-SLAM-Example/Controller.h"
 #include "EKF-SLAM-Example/structs/Config.h"

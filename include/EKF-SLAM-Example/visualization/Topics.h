@@ -47,6 +47,11 @@ namespace topics {
         return str;
     }
 
+    inline const std::string& INF_MATRIX() {
+        static const std::string str = PRESET() + "/inf_matrix";
+        return str;
+    }
+
     inline const std::string& CORRELATIONS() {
         static const std::string str = PRESET() + "/correlations";
         return str;

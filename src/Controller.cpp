@@ -21,6 +21,7 @@ Controller::Controller(const Config& conf)
 
     simulation_engine_.set_measurement_callback([&]() {
 
+        const std::lock_guard<std::mutex> lock(slam_mutex_);
         auto t_start = std::chrono::high_resolution_clock::now();
 
         auto landmark_measurements = simulation_engine_.get_landmark_measurements();
@@ -38,6 +39,15 @@ Controller::Controller(const Config& conf)
         auto t_stop = std::chrono::high_resolution_clock::now();
         auto duration = duration_cast<std::chrono::microseconds>(t_stop - t_start);
         std::cout << "Correction duration: " << duration.count() << "us" << std::endl;
+
+//        auto cov = ekf_slam_.get_covariant_matrix();
+//        std::cout << std::endl << " - Cov -" << std::endl;
+//        for(int i = 0; i < cov.rowNr(); i++) {
+//            for(int j = 0; j < cov.colNr(); j++) {
+//                std::cout << cov.getElement(i, j) << "\t";
+//            }
+//            std::cout << std::endl;
+//        }
 
         visualization_engine_.draw_measurements_wrt_estimated_robot(simulation_engine_.get_landmark_measurements(), agent);
         visualize_covariance();
@@ -73,8 +83,9 @@ Controller::~Controller() {
 
 
 void Controller::ekf_prediction_timer_callback() {
-    auto linear_speed = gamepad_handler_.get_right_x();
-    auto angular_speed = gamepad_handler_.get_left_y();
+    const std::lock_guard<std::mutex> lock(slam_mutex_);
+    auto linear_speed = gamepad_handler_.get_right_x() * conf_.sim_conf.linear_speed_coef;
+    auto angular_speed = gamepad_handler_.get_left_y() * conf_.sim_conf.angular_speed_coef;
     ekf_slam_.predict(linear_speed, angular_speed, conf_.ekf_conf.ekf_prediction_period);
 
     auto robot_pose = simulation_engine_.get_robot_pose();
@@ -128,14 +139,19 @@ void Controller::visualize_covariance() {
 
     const auto states = ekf_slam_.get_state_vector_matrix();
     const auto cov = ekf_slam_.get_covariant_matrix();
+    const auto inf = cov.inverted();
     auto agent_x = states.getElement(0, 0);
     auto agent_y = states.getElement(1, 0);
     size_t no_of_landmarks = (states.rowNr() - 3) / 2;
 
     cv::Mat cov_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
+    cv::Mat inf_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
+
     cv::eigen2cv(cov.data(), cov_img);
-    cov_img.setTo(100,cov_img>100);
+    cv::eigen2cv(inf.data(), inf_img);
+
     visualization_engine_.draw_covariance_matrix(cov_img);
+    visualization_engine_.draw_information_matrix(inf_img);
 
     std::vector<VisualizationEngine::Correlation> correlations;
     for (size_t l = 0; l < no_of_landmarks ; l+=1) {

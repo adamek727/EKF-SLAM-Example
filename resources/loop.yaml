@@ -29,17 +29,20 @@ gamepad:
 
 ekf_slam:
   angle_noise: 0.01
-  distance_noise: 0.02
-  motion_noise: 0.0001
+  distance_noise: 0.1
+  motion_noise: 0.01
+#  angle_noise: 0.001
+#  distance_noise: 0.001
+#  motion_noise: 0.0001
 
   ekf_prediction_period: 0.1
 
 simulation:
   angle_noise: 0.01
-  distance_noise: 0.02
-  motion_noise: 0.001
+  distance_noise: 0.1
+  motion_noise: 0.01
 
-  sensor_range: 3.0
+  sensor_range: 10.0
 
   linear_speed_coef: 1.0
   angular_speed_coef: 1.0

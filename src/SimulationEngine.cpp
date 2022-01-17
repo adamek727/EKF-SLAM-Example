@@ -61,7 +61,9 @@ void SimulationEngine::landmark_measurement_timer_callback() {
                         .range = distance + gaussian_random_val(0.0, conf_.sim_conf.distance_noise)});
         }
     }
+    std::cout << "no of measurements: " << landmark_measurements_.size()<< std::endl;
     landmark_measured_callback_();
+    landmark_measurements_.clear();
 }
 
 float SimulationEngine::gaussian_random_val(float mean, float std_div) {

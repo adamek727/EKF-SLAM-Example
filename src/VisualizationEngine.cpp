@@ -77,7 +77,7 @@ void VisualizationEngine::draw_landmarks(const std::vector<rtl::Vector3f>& landm
                 .pose = landmark,
                 .orientation = landmark_orientation,
                 .scale = rtl::Vector3f {0.2f, 0.2f, 0.2f},
-                .color = Colors::Blue,
+                .color = Colors::Red,
                 .id = marker_count++,
                 .frame = frames::ORIGIN(),
                 .time = node_->get_clock()->now(),
@@ -174,7 +174,6 @@ void VisualizationEngine::draw_correlations(std::vector<Correlation> correlation
 
 void VisualizationEngine::draw_covariance_matrix(const cv::Mat& mat) {
 
-//#ifdef DRAW_OPEN_CV
     cv::Mat upscaled_mat, cutted, norm_f, norm_i;
 
     double min, max;
@@ -185,8 +184,8 @@ void VisualizationEngine::draw_covariance_matrix(const cv::Mat& mat) {
     normalize(cutted, norm_f, 0, 1, cv::NORM_MINMAX,CV_32FC1);
     cv::resize(norm_f, upscaled_mat, cv::Size(400, 400), cv::INTER_NEAREST);
     cv::imshow("cov mat", upscaled_mat);
+    cv::imwrite("cov_mat.bmp", upscaled_mat);
     cv::waitKey(1);
-//#endif
 
     auto msg = sensor_msgs::msg::Image();
 
@@ -198,6 +197,32 @@ void VisualizationEngine::draw_covariance_matrix(const cv::Mat& mat) {
     img_bridge.toImageMsg(msg);
 
     backend_.visualize(msg, topics::COV_MATRIX());
+}
+
+
+void VisualizationEngine::draw_information_matrix(const cv::Mat& mat) {
+    cv::Mat upscaled_mat, cutted, norm_f, norm_i;
+
+    double min, max;
+    cv::minMaxLoc(mat, &min, &max);
+    cutted = mat.clone();
+    cutted.setTo(0, cutted >= max);
+
+    normalize(cutted, norm_f, 0, 1, cv::NORM_MINMAX,CV_32FC1);
+    cv::resize(norm_f, upscaled_mat, cv::Size(400, 400), cv::INTER_NEAREST);
+    cv::imshow("inf mat", upscaled_mat);
+    cv::waitKey(1);
+
+    auto msg = sensor_msgs::msg::Image();
+
+    std_msgs::msg::Header header;
+    header.stamp = node_->get_clock()->now();
+    header.frame_id = frames::ORIGIN();
+
+    auto img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1, norm_f);
+    img_bridge.toImageMsg(msg);
+
+    backend_.visualize(msg, topics::INF_MATRIX());
 }
 
 

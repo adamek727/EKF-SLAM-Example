@@ -47,6 +47,7 @@ public:
     void draw_landmark_measurements(const std::vector<LandmarkMeasurement>& measurements);
     void draw_correlations(std::vector<Correlation> correlations);
     void draw_covariance_matrix(const cv::Mat& mat);
+    void draw_information_matrix(const cv::Mat& mat);
 
     void draw_pose_with_covariance(const rtl::Vector3f& pose, float yaw, const rtl::Matrix33f& cov);
 

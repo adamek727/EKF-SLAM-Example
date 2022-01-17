@@ -28,6 +28,7 @@
 #ifndef ROBOTICTEMPLATELIBRARY_EKFSLAM2D_H
 #define ROBOTICTEMPLATELIBRARY_EKFSLAM2D_H
 
+
 #include <cmath>
 #include <iomanip>
 
@@ -91,7 +92,6 @@ public:
                 existing_landmarks.push_back(measurement);
             }
         }
-
         insert_landmarks(new_landmarks);
         update_landmarks(existing_landmarks);
     }
@@ -190,10 +190,11 @@ private:
 
     void update_landmarks(const std::vector<LandmarkND<filter_dim, dtype>>& landmarks) {
 
-        auto robot = get_agent_state();
-        auto robot_yaw = robot.rotation().rotAngle();
-
         for (const auto& landmark : landmarks) {
+
+            auto robot = get_agent_state();
+            auto robot_yaw = robot.rotation().rotAngle();
+
             size_t matrix_index = agent_states_dim + landmark.id() * 2;
             auto d_x = landmark.translation().trVecX() - robot.translation().trVecX();
             auto d_y = landmark.translation().trVecY() - robot.translation().trVecY();
@@ -214,7 +215,6 @@ private:
 
             auto z_diff = z_measurement - z_map;
             z_diff.setElement(1, 0, normalize_angle(z_diff.getElement(1, 0)));
-
 
             auto H_jacobian = rtl::Matrix<kalman_measurement_vector_dim, kalman_state_vector_dim, dtype>::zeros();
             H_jacobian.setColumn(0, rtl::VectorND<2, dtype>{-d*d_x, d_y});
