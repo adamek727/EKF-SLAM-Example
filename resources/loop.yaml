@@ -42,7 +42,7 @@ simulation:
   distance_noise: 0.1
   motion_noise: 0.01
 
-  sensor_range: 10.0
+  sensor_range: 3.0
 
   linear_speed_coef: 1.0
   angular_speed_coef: 1.0

@@ -145,13 +145,13 @@ void Controller::visualize_covariance() {
     size_t no_of_landmarks = (states.rowNr() - 3) / 2;
 
     cv::Mat cov_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
-    cv::Mat inf_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
+    //cv::Mat inf_img(cov.rowNr(), cov.colNr(), CV_32FC1, cv::Scalar(0.0f));
 
-    cv::eigen2cv(cov.data(), cov_img);
-    cv::eigen2cv(inf.data(), inf_img);
+    //cv::eigen2cv(cov.data(), cov_img);
+    //cv::eigen2cv(inf.data(), inf_img);
 
-    visualization_engine_.draw_covariance_matrix(cov_img);
-    visualization_engine_.draw_information_matrix(inf_img);
+    //visualization_engine_.draw_covariance_matrix(cov_img);
+    //visualization_engine_.draw_information_matrix(inf_img);
 
     std::vector<VisualizationEngine::Correlation> correlations;
     for (size_t l = 0; l < no_of_landmarks ; l+=1) {

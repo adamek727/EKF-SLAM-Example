@@ -7,6 +7,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+add_definitions(-DOPENCV_DISABLE_EIGEN_TENSOR_SUPPORT)
 
 find_package(YAML-CPP REQUIRED)
 find_package(OpenCV REQUIRED)

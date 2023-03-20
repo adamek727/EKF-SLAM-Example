@@ -18,9 +18,9 @@
 
 class Controller : public rclcpp::Node {
 
-    static constexpr size_t num_of_landmarks = 200;
+    static constexpr size_t num_of_landmarks = 20;
     static constexpr float landmark_assign_distance = 1.0f;
-    static constexpr size_t trajectory_history_size = 500;
+    static constexpr size_t trajectory_history_size = 100;
 
     using EkfSlamDtype = float;
     using EkfSlamType = EkfSlam2D<EkfSlamDtype, num_of_landmarks>;
